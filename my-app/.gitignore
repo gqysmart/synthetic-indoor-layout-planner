@@ -1,0 +1,25 @@
+# Node.js / Next.js
+frontend/node_modules
+frontend/.next
+frontend/.env.local
+frontend/.env.development
+frontend/.env.production
+
+# Python / FastAPI
+backend/__pycache__/
+backend/.venv/
+backend/.env
+backend/.pytest_cache
+backend/.mypy_cache
+
+# Logs
+*.log
+
+# Mac / VSCode
+.DS_Store
+.vscode/
+.idea/
+
+# Docker
+*.pid
+*.sock
