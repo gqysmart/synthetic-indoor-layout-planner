@@ -11,7 +11,7 @@ BACKEND_PATH = ROOT / "my-app" / "backend"
 if str(BACKEND_PATH) not in sys.path:
     sys.path.insert(0, str(BACKEND_PATH))
 
-from models.geomCore import PointRegistry, Polyline
+from lib.geometry.geomCore import PointRegistry, Polyline
 from models.visualize import plot_polylines
 
 

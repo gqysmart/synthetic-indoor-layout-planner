@@ -6,6 +6,8 @@ import math
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
+import numpy as np
+import cv2
 
 from .geomCore import ArcSegment, LineSegment, PointRegistry, Polyline, um_to_m
 
@@ -135,3 +137,77 @@ def plot_polylines(
         plt.show()
     return ax
 
+
+def plot_polyline_cv(
+    polyline: Polyline,
+    registry: PointRegistry,
+    *,
+    canvas: Optional[np.ndarray] = None,
+    pixels_per_m: float = 100.0,
+    margin: int = 20,
+    close: Optional[bool] = None,
+    arc_resolution: int = 16,
+    color: Tuple[int, int, int] = (0, 165, 255),
+    thickness: int = 2,
+    background_color: Tuple[int, int, int] = (255, 255, 255),
+    show: bool = False,
+    window_name: str = "polyline",
+) -> np.ndarray:
+    """Render a polyline onto an OpenCV canvas and return the image.
+
+    Args:
+        polyline: Polyline to render.
+        registry: Point registry for coordinate lookup.
+        canvas: Optional target image (BGR). If omitted a new canvas is created.
+        pixels_per_m: Scalar to convert metres to pixels.
+        margin: Padding (pixels) around the computed bounding box.
+        close: Force closure of the points list, defaults to ``polyline.closed``.
+        arc_resolution: Samples used to approximate arcs when flattening.
+        color: BGR colour used when drawing the polyline.
+        thickness: Line thickness (pixels).
+        background_color: Colour used for a generated canvas.
+        show: If True, display the image via ``cv2.imshow``.
+        window_name: Window title when ``show`` is True.
+
+    Returns:
+        The image containing the rendered polyline.
+    """
+    xs, ys = polyline_xy(polyline, registry, close=close, arc_resolution=arc_resolution)
+    if not xs:
+        if canvas is None:
+            canvas = np.full((2 * margin, 2 * margin, 3), background_color, dtype=np.uint8)
+        if show:
+            cv2.imshow(window_name, canvas)
+            cv2.waitKey(0)
+            cv2.destroyWindow(window_name)
+        return canvas
+
+    coords = np.column_stack([xs, ys]) * float(pixels_per_m)
+    min_vals = coords.min(axis=0)
+    max_vals = coords.max(axis=0)
+    span = np.maximum(max_vals - min_vals, 1.0)
+
+    width = int(math.ceil(span[0])) + 2 * margin
+    height = int(math.ceil(span[1])) + 2 * margin
+
+    shifted = coords - min_vals + margin
+    shifted[:, 1] = (max_vals[1] - coords[:, 1]) + margin
+    points_px = np.round(shifted).astype(np.int32)
+
+    if canvas is None:
+        canvas = np.full((height, width, 3), background_color, dtype=np.uint8)
+
+    cv2.polylines(
+        canvas,
+        [points_px.reshape(-1, 1, 2)],
+        isClosed=bool(polyline.closed if close is None else close),
+        color=color,
+        thickness=thickness,
+        lineType=cv2.LINE_AA,
+    )
+
+    if show:
+        cv2.imshow(window_name, canvas)
+        cv2.waitKey(0)
+        cv2.destroyWindow(window_name)
+    return canvas
