@@ -1,0 +1,244 @@
+@startuml classDiagram
+' ==========================
+' Indoor Layout Project — Class Diagram (Draft v0.1)
+' ==========================
+' Notes:
+' - Keep fonts default to avoid local font issues
+' - You can copy this into a .puml file and render with PlantUML
+' - Edit freely; this is a working draft based on our discussions
+
+skinparam BackgroundColor #FFFFFF
+skinparam Shadowing false
+skinparam Monochrome true
+skinparam ClassAttributeIconSize 0
+hide empty members
+
+' ---------------------------------
+' Packages (logical grouping)
+' ---------------------------------
+package Geometry {
+  class Grid {
+    + step : int
+    + units : String
+    + toWorld(x:int, y:int) : (float,float)
+    + snap(value:float) : int
+  }
+
+  class Axis {
+    + name : String  ' X / Y
+  }
+
+  class Level {
+    + elevation : int  ' in micrometers (µm)
+  }
+
+  class PointID {
+    + id : UUID
+  }
+
+  class PointRegistry {
+    - points : Map<String, PointID>
+    + getOrCreate(x:int, y:int, level:Level) : PointID
+    + refCount(pid:PointID) : int
+    + release(pid:PointID) : void
+  }
+
+  abstract class Segment {
+    + length() : float
+  }
+
+  class LineSegment extends Segment {
+    + start : PointID
+    + end : PointID
+  }
+
+  class ArcSegment extends Segment {
+    + center : PointID
+    + radius : int
+    + start : PointID
+    + end : PointID
+    + clockwise : boolean
+  }
+
+  class Polyline {
+    + segments : List<Segment>
+    + length() : float
+    + area2D() : float
+    + isClosed : boolean
+  }
+}
+
+package Layout {
+  class Room {
+    + id : UUID
+    + name : String
+    + outline : Polyline
+    + level : Level
+    + doors : List<Door>
+    + obstacles : List<Obstacle>
+    + contains(p:Polyline) : boolean
+  }
+
+  class Door {
+    + width : float
+    + swing : String   ' in/out/none
+    + opening : Polyline
+  }
+
+  class Obstacle {
+    + footprint : Polyline
+    + label : String
+  }
+
+  class Furniture {
+    + id : UUID
+    + name : String
+    + sizeW : int
+    + sizeD : int
+    + rotation : int   ' 0/90/180/270
+    + anchor : PointID
+    + footprint() : Polyline
+  }
+
+  class Placement {
+    + furniture : Furniture
+    + position : PointID
+    + rotation : int
+  }
+
+  class LayoutState {
+    + placements : List<Placement>
+    + isValid() : boolean
+    + freeSpace() : float
+    + clone() : LayoutState
+  }
+}
+
+package Planning {
+  class PathPlanner {
+    + grid : Grid
+    + isReachable(room:Room, state:LayoutState, from:PointID, to:PointID, minWidth:int) : boolean
+    + route(from:PointID, to:PointID) : Polyline
+  }
+}
+
+package CSP {
+  interface IConstraint {
+    + isSatisfied(state:LayoutState) : boolean
+    + cost(state:LayoutState) : float
+  }
+
+  class InRoomConstraint implements IConstraint
+  class NonOverlapConstraint implements IConstraint
+  class ConnectivityConstraint implements IConstraint {
+    + minCorridor : int
+  }
+  class DoorAccessConstraint implements IConstraint
+
+  class Variable {
+    + name : String
+    + domain : Domain
+  }
+  class Domain {
+    + values : Set<Placement>
+    + restrict(pred) : Domain
+  }
+  class Assignment {
+    + state : LayoutState
+    + set(var:Variable, value:Placement) : void
+  }
+
+  class Heuristic {
+    + selectVariable(vars:List<Variable>, assign:Assignment) : Variable
+    + orderValues(var:Variable, assign:Assignment) : List<Placement>
+  }
+
+  abstract class Solver {
+    + vars : List<Variable>
+    + constraints : List<IConstraint>
+    + solve(initial:Assignment) : LayoutState
+  }
+
+  class BacktrackingSolver extends Solver
+  class LocalSearchSolver extends Solver
+  class AStarSolver extends Solver {
+    + heuristic : Heuristic
+  }
+}
+
+package Evaluation {
+  class Metrics {
+    + freeArea(state:LayoutState) : float
+    + pathLength(state:LayoutState) : float
+    + score(state:LayoutState) : float
+  }
+}
+
+package IO {
+  class Importer {
+    + fromJSON(file) : Room
+    + fromIFC(file) : Room
+  }
+  class Exporter {
+    + toJSON(state:LayoutState) : File
+    + toSVG(state:LayoutState) : File
+    + toPNG(state:LayoutState) : File
+  }
+}
+
+' ---------------------------------
+' Relationships
+' ---------------------------------
+Room "1" o-- "1" Level
+Room "1" o-- "*" Door
+Room "1" o-- "*" Obstacle
+Room "1" o-- "1" Polyline : outline
+
+Polyline "1" o-- "*" Segment
+LineSegment --> PointID : start/end
+ArcSegment --> PointID : center/start/end
+
+LayoutState "1" o-- "*" Placement
+Placement --> Furniture
+Furniture --> PointID : anchor
+Obstacle --> Polyline : footprint
+Door --> Polyline : opening
+
+' Constraints depend on geometry & planning
+IConstraint ..> Room
+IConstraint ..> LayoutState
+ConnectivityConstraint ..> PathPlanner : uses
+DoorAccessConstraint ..> PathPlanner : uses
+
+' Solver uses variables, domains, constraints, heuristics
+Solver --> Variable
+Variable --> Domain
+Solver --> IConstraint
+Solver --> Heuristic
+Assignment --> LayoutState
+AStarSolver --> Heuristic
+
+' Evaluation & IO
+Metrics ..> LayoutState
+Exporter ..> LayoutState
+Importer ..> Room
+
+' ---------------------------------
+' Notes
+' ---------------------------------
+note top of Grid
+  Global grid in micrometers (µm)
+  Avoid float drift; use fixed-point ints
+end note
+
+note right of LayoutState
+  Represents a concrete arrangement of furniture
+  Validation aggregates all constraints
+end note
+
+note bottom of ConnectivityConstraint
+  Ensures free space connectivity and corridor width
+  Uses PathPlanner on a discretized grid
+end note
+
+@enduml

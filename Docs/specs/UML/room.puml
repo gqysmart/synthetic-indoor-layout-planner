@@ -1,0 +1,23 @@
+@startuml Room
+!include _theme.puml
+!include furniture.puml
+!include geometry.puml
+
+package Building{
+
+class Room{
+    +geometry:RoomGeometry
+    +content:RoomContent
+
+}
+
+class RoomGeometry{
+    +boundary:List<Line>
+    +corners:List<Point>
+}
+
+class RoomContent{
+    +furnishings:List<Furniture>
+}   
+}
+@enduml

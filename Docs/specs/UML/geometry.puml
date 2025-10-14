@@ -1,0 +1,15 @@
+@startuml Geometry
+!include _theme.puml
+
+package Geometry{
+    class Point{}
+    class Line{}
+    class Polygon{} 
+
+
+
+}
+
+
+
+@enduml 

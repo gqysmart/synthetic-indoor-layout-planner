@@ -1,0 +1,37 @@
+
+@startuml SystemArchitecture
+
+
+skinparam componentStyle rectangle
+title Synthetic Indoor Layout Planner - System Architecture
+
+skinparam rectangle {
+  BackgroundColor #eef5ff
+  BorderColor #3a6ea5
+}
+
+
+actor User as U
+
+package "System" {
+    
+    component "Room Parser" as Parser
+    component "CSP Solver" as CSP
+    component "Optimization Engine" as Opt
+    component "Collision Checker" as Collision
+
+
+    database "Room + Furniture Data" as DB
+
+
+U --> CSP : Generate Variables & Constraints
+CSP --> Collision : Ensure Feasibility
+CSP --> Opt : Improve Arrangement
+Opt --> Collision : Validate Solutions
+
+
+
+Parser --> DB
+
+
+@enduml

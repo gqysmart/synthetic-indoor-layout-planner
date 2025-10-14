@@ -1,5 +1,13 @@
 {
     "python.analysis.extraPaths": [
         "./my-app/backend"
-    ]
+    ],
+    
+  "plantuml.render": "Local",
+  "plantuml.useBetaStyle": true,        // 用新渲染器，避免 Serif→Times 回退
+  "plantuml.defaultFormat": "png",
+  "markdown-pdf.styles": [
+  "Docs/communication/markdown-pdf-style.css"
+]
+
 }

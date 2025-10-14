@@ -1,0 +1,8 @@
+
+
+' 全局样式 / 主题
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+' 也可放 title、legend 等共用元素
+

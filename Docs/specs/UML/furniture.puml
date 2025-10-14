@@ -1,0 +1,11 @@
+@startuml Furniture
+!include _theme.puml
+
+package Building{
+
+class Furniture{
+
+
+}
+}
+@enduml

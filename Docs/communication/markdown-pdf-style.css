@@ -1,0 +1,17 @@
+/* ~/.vscode/markdown-pdf-style.css */
+
+body {
+  font-family: "Times New Roman", "Noto Sans", serif;
+  font-size: 12pt;
+  line-height: 1.2;
+  color: #000000;
+}
+
+code, pre {
+  font-family: "Consolas", "Courier New", monospace;
+  font-size: 10pt;
+}
+h1, h2, h3 {
+  font-family: "Helvetica Neue", "Arial", sans-serif;
+ 
+}
