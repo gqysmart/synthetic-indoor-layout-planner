@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional
+
 try:
     from typing import Literal  # type: ignore
 except ImportError:  # pragma: no cover - fallback for older Python versions
@@ -103,4 +104,6 @@ class Furnish:
             width=2.0,
             length=0.9,
             height=0.8
+
         )
+
