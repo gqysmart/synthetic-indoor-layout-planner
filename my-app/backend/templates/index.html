@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Planner Job Demo</title>
+    <style>
+      body { font-family: sans-serif; margin: 2rem; max-width: 640px; }
+      label { display: block; margin-bottom: 0.3rem; }
+      input, select { width: 100%; padding: 0.4rem; margin-bottom: 1rem; }
+      button { padding: 0.6rem 1rem; }
+      #log { margin-top: 1rem; border: 1px solid #ccc; padding: 1rem; height: 220px; overflow-y: auto; white-space: pre-line; }
+      #roomImage { max-width: 100%; border: 1px solid #ccc; padding: 0.5rem; background: #fafafa; display: none; }
+      #roomSummary { white-space: pre-line; border: 1px solid #ccc; padding: 0.5rem; background: #f7f7f7; min-height: 3rem; display: none; }
+      #warning { display: none; color: #92400e; background: #fff7ed; border: 1px solid #f97316; padding: 0.5rem; margin-top: 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Indoor Layout Planner</h1>
+    <form id="job-form">
+      <label for="iterations">maxNumberOfInteration</label>
+      <input id="iterations" name="maxNumberOfInteration" type="number" value="5" min="1" required />
+
+      <label for="method">methond</label>
+      <select id="method" name="methond">
+        <option value="beam-search">beam-search</option>
+        <option value="lns">lns</option>
+      </select>
+
+      <label for="roomFile">Room data (JSON)</label>
+      <input
+        id="roomFile"
+        name="roomFile"
+        type="file"
+        accept="application/json"
+        aria-describedby="roomHelp"
+      />
+      <small id="roomHelp">
+        Upload a JSON file shaped like:
+        {"points": [[0,0], [5,0], [5,4], [0,4]], "outline": [{"type":"line","start":0,"end":1}, ...]}
+      </small>
+
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button type="submit">Submit job</button>
+        <button type="button" id="startPlanning" disabled>Start planning</button>
+      </div>
+    </form>
+
+    <section>
+      <h2>Room Preview</h2>
+      <img id="roomImage" alt="Room preview" />
+    </section>
+
+    <section>
+      <h2>Room Summary</h2>
+      <pre id="roomSummary"></pre>
+      <div id="warning"></div>
+    </section>
+
+    <section>
+      <h2>Status</h2>
+      <div id="status">Waiting for submission…</div>
+    </section>
+
+    <section>
+      <h2>Log</h2>
+      <div id="log"></div>
+    </section>
+
+    <script>
+      const statusEl = document.getElementById("status");
+      const logEl = document.getElementById("log");
+      const form = document.getElementById("job-form");
+      const roomImage = document.getElementById("roomImage");
+      const roomSummary = document.getElementById("roomSummary");
+      const warningBox = document.getElementById("warning");
+      const startPlanningBtn = document.getElementById("startPlanning");
+
+      let socket = null;
+
+      function appendLog(message) {
+        logEl.textContent += message + "\n";
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      startPlanningBtn.addEventListener("click", () => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+          appendLog("WebSocket is not ready.");
+          return;
+        }
+        startPlanningBtn.disabled = true;
+        socket.send(JSON.stringify({ type: "command", command: "start_planning" }));
+        appendLog("Requested planner run.");
+      });
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        statusEl.textContent = "Submitting…";
+        logEl.textContent = "";
+        startPlanningBtn.disabled = true;
+
+        const formData = new FormData();
+        formData.append("maxNumberOfInteration", form.maxNumberOfInteration.value);
+        formData.append("methond", form.methond.value);
+
+        const roomFile = form.roomFile.files[0];
+        if (roomFile) {
+          formData.append("roomFile", roomFile);
+        }
+
+        const response = await fetch("/jobs", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!response.ok) {
+          statusEl.textContent = "Submission failed";
+          appendLog("Server error: " + (await response.text()));
+          return;
+        }
+
+        const { job_id } = await response.json();
+        statusEl.textContent = "Job queued: " + job_id;
+        roomImage.style.display = "none";
+        roomImage.removeAttribute("src");
+        roomSummary.style.display = "none";
+        roomSummary.textContent = "";
+        warningBox.style.display = "none";
+        warningBox.textContent = "";
+
+        if (socket) {
+          socket.close();
+        }
+
+        const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+        socket = new WebSocket(`${protocol}://${window.location.host}/ws/jobs/${job_id}`);
+
+        socket.addEventListener("open", () => {
+          socket.send(JSON.stringify({ type: "subscribe" }));
+          appendLog("Listening for updates…");
+          startPlanningBtn.disabled = false;
+        });
+
+        socket.addEventListener("message", (event) => {
+          const data = JSON.parse(event.data);
+          if (data.type === "room" && data.summary) {
+            roomSummary.textContent = data.summary;
+            roomSummary.style.display = "block";
+            appendLog("Received room summary.");
+            return;
+          }
+          if (data.type === "room_image" && data.data_url) {
+            roomImage.src = data.data_url;
+            roomImage.style.display = "block";
+            appendLog("Received room preview.");
+            return;
+          }
+          if (data.type === "warning") {
+            warningBox.textContent = data.message ?? "Warning received.";
+            warningBox.style.display = "block";
+            appendLog("Warning: " + (data.message ?? ""));
+            return;
+          }
+          appendLog(JSON.stringify(data));
+          if (data.type === "done" || data.type === "error") {
+            statusEl.textContent = data.type === "done" ? "Job finished" : "Job failed";
+            socket.close();
+          }
+        });
+
+        socket.addEventListener("close", () => {
+          appendLog("Connection closed.");
+          startPlanningBtn.disabled = true;
+        });
+      });
+    </script>
+  </body>
+</html>

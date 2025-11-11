@@ -12,7 +12,7 @@ Our current research explores a hybrid formulation combining **hard spatial cons
 
 ## 2. Solution
 
-Github: [https://github.com/gqysmart/synthetic-indoor-layout-planner.git](https://github.com/gqysmart/synthetic-indoor-layout-planner.git)
+GitHub: [synthetic-indoor-layout-planner (dev branch)](https://github.com/gqysmart/synthetic-indoor-layout-planner/tree/dev)
 
 ### 2.1 Architecture and Framework
 

@@ -55,6 +55,8 @@ pip install -r requirements.txt
 python perception/detect.py --source sample_room.jpg
 
 4. Run the planner
+PYTHONPATH=my-app uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+
 python planner/run_planner.py --input detected_objects.json
 
 5. Visualize in Unity/Unreal
@@ -111,6 +113,8 @@ Grant Ge (Qiyun Ge)
 💡 Focus: Synthetic Data · Computer Vision · AI Planning
 
 ---
+
+
 
 ## 📜 License
 This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
