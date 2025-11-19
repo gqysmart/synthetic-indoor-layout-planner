@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "synthetic-indoor-layout-planner"
+version = "0.1.0"
+description = "Indoor layout planner with FastAPI, CV, and Airflow orchestration."
+requires-python = ">=3.11,<3.12"
+readme = "README.md"
+
+
+# no dependencies = [...]
+
+
+[tool.setuptools]
+packages = ["app", "planner_core", "pipeline"]
+

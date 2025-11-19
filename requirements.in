@@ -1,10 +1,11 @@
+# --web backend--
 fastapi
 uvicorn[standard]
 sqlalchemy
 python-multipart
 
+# --CV/ Data processing--
 opencv-python
 matplotlib
-
 scikit-image
 scipy
