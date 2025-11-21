@@ -4,6 +4,7 @@ from enum import Enum
 import numpy as np
 import cv2 as cv
 
+from my_app.backend.lib.geometry.pixelCoorinateSystem import PixelCoordinateSystem
 from my_app.backend.lib.view.cv_canvas import CVViewport as CVCanvas
 from my_app.backend.domain.room import Room, room_example_a, room_example_b
 from my_app.backend.domain.furniture import (
@@ -81,37 +82,22 @@ def create_room_layout_RANDOM(room: Room, layout_model) -> RoomLayout:
 # 绘制布局
 # -----------------------
 
-def draw_layout(layout: RoomLayout, pixels_per_meter: int = 100) -> np.ndarray:
+def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
     """
     把一个 RoomLayout 画成一张 OpenCV 图像（BGR）
     假定房间和家具都是 axis-aligned 的矩形（暂时忽略旋转 r）
     """
 
     room = layout.room
-    rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
-    room_w = rect.width
-    room_h = rect.height
+   
 
     # 使用 room 本地坐标系，原点在房间中心
-    room_left = 0.0 - room_w / 2.0
-    room_right = 0.0 + room_w / 2.0
-    room_top = 0.0 - room_h / 2.0
-    room_bottom = 0.0 + room_h / 2.0
-
-    img_w = int(np.ceil(room_w * pixels_per_meter))
-    img_h = int(np.ceil(room_h * pixels_per_meter))
-
-    canvas = CVCanvas(
-        canvas_size=(img_w +40, img_h+40),
-        center_world=(0.0, 0.0),
-        pixels_per_meter=pixels_per_meter,
-    )
-
+   
     corner_world_room = room.world_corners()
-    img = canvas.display_poly(corner_world_room, color=(200, 200, 200))
-    img = canvas.display_text(
+    img = canvas.draw_polygon(corner_world_room, color=(200, 200, 200))
+    img = canvas.draw_text(
         f"Room: {room.name}",
-        poistion_world=(room_left + 0.2, room_top + 0.2),
+        position_world=(room_left + 0.2, room_top + 0.2),
       )
    
 
@@ -144,7 +130,7 @@ def draw_layout(layout: RoomLayout, pixels_per_meter: int = 100) -> np.ndarray:
             color = (0, 255, 0)  # 绿色 
 
         #cv.rectangle(img, tl_f, br_f, color, thickness=-1)  # 实心红色
-        img =canvas.display_poly(corner_world, color=color)
+        img =canvas.draw_polygon(corner_world, color=color)
         # 标注家具 ID
         #     img,
         #     furn.id,
@@ -198,11 +184,33 @@ if __name__ == "__main__":
         furniture_example_wardrobe,
     ]
 
+    rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
+    room_w = rect.width
+    room_h = rect.height
+
+    room_left = 0.0 - room_w / 2.0
+    room_right = 0.0 + room_w / 2.0
+    room_top = 0.0 - room_h / 2.0
+    room_bottom = 0.0 + room_h / 2.0
+
+    pixels_per_meter = 100
+    pcs = PixelCoordinateSystem(
+        pixels_per_meter=pixels_per_meter,
+        canvas_size=(int(np.ceil(room_w * pixels_per_meter))+40, int(np.ceil(room_h * pixels_per_meter))+40),
+        center_world=(0.0, 0.0),
+    )
+
+    canvas = CVCanvas(
+        pcs=pcs,
+        background_color=(240, 240, 240),
+    )
+
+
     layout = create_room_layout(
         room,
         furniture_list,
         method=LayoutMethod.MANUAL,
     )
 
-    img = draw_layout(layout)
+    img = draw_layout(layout, canvas)
    
