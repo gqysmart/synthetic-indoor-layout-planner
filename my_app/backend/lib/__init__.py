@@ -1,3 +1,1 @@
-"""Shared backend utilities."""
-
-__all__ = ["geometry"]
+# Marks lib as a package.
