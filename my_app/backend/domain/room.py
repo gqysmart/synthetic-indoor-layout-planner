@@ -1,5 +1,6 @@
 from dataclasses import dataclass,field
-from my_app.backend.lib.geometry.shape import Rectangle, Transform
+from my_app.core.geometry.shape import Rectangle
+from my_app.core.geometry.coorinateSystem import Transform
 from enum import Enum
 from typing import List, Tuple
 
@@ -8,14 +9,13 @@ import numpy as np
 
 from my_app.backend.domain.door import Door
 from my_app.backend.domain.furniture import Furniture, FurnitureLibrary, FurnitureSpec, FurnitureType, furniture_lib
-from my_app.backend.lib.geometry.shape import PlacedRectangle, Rectangle
 
 
 @dataclass
 class Room:
     shape: Rectangle
     name: str
-    doors: list[Door]=None
+    door: Door=field(default_factory=Door)
     transform: Transform = field(default_factory=Transform)
     def world_corners(self) -> list[tuple[float, float]]:
         """
@@ -23,22 +23,13 @@ class Room:
         顺序：左上 → 右上 → 右下 → 左下（逆时针）
         """
 
-        rw = self.shape.width
-        rd = self.shape.height   # 或 height，看你的字段名
+        vects = self.shape.get_polygon_points()
 
-        # 房间本地坐标下的四个角
-        # （⚠️ y 轴向下为正，与 OpenCV 坐标系一致）
-        local_corners = [
-            (-rw / 2.0, -rd / 2.0),   # 左上
-            ( rw / 2.0, -rd / 2.0),   # 右上
-            ( rw / 2.0,  rd / 2.0),   # 右下
-            (-rw / 2.0,  rd / 2.0),   # 左下
-        ]
 
         # 转换到世界坐标
         return [
             self.transform.local_to_world(x, y)
-            for (x, y) in local_corners
+            for (x, y) in vects
         ]
 
 
@@ -46,7 +37,7 @@ def create_room(
     name: str,
     room_width: float,
     room_depth: float,
-    doors: List[Door] | None = None,
+    door: Door | None = None,
 ) -> Room:
     """
     furniture_items 示例:
@@ -64,20 +55,23 @@ def create_room(
     )
 
 
-    if doors is None:
-        doors = []
-
+    if door is None:
+        door = Door(
+            offset=(0.2),#200mm from left wall
+            wallID=0,
+            width=0.9)
+   
     return Room(
         shape=room_shape,
         name=name,
-        doors=doors,
+        door=door,
     )
 
 
 room_example_a = create_room(
     "Room A",
-    5.0,
-    4.0,
+    3.5,
+    3.0,
 )
 
 room_example_b = create_room(
@@ -87,16 +81,3 @@ room_example_b = create_room(
 )
 
 
-
-def show_rooms(room_a: Room, room_b: Room):
-    img_a = draw_room(room_a, pixels_per_meter=100)
-    img_b = draw_room(room_b, pixels_per_meter=100)
-
-    cv2.imshow("Room A", img_a)
-    cv2.imshow("Room B", img_b)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-
-
-if __name__ == "__main__":
-    show_rooms(room_example_a, room_example_b)

@@ -4,7 +4,7 @@ from enum import Enum
 import numpy as np
 import cv2 as cv
 
-from my_app.backend.lib.geometry.pixelCoorinateSystem import PixelCoordinateSystem
+from my_app.core.geometry.pixelCoorinateSystem import PixelCoordinateSystem
 from my_app.backend.lib.view.cv_canvas import CVViewport as CVCanvas
 from my_app.backend.domain.room import Room, room_example_a, room_example_b
 from my_app.backend.domain.furniture import (
@@ -14,9 +14,11 @@ from my_app.backend.domain.furniture import (
     furniture_example_bed,
     furniture_example_table,
     furniture_example_wardrobe,
+    furniture_example_desk_round,
     furniture_lib,
 )
-from my_app.backend.lib.geometry.shape import Transform, Rectangle
+from my_app.core.geometry.shape import  Rectangle
+from my_app.core.geometry.coorinateSystem import Transform
 # from my_app.backend.planner_core_simplified.model_simplified import Layout  # 暂时不用就先注释掉，免得 lint 报 unused
 
 
@@ -81,6 +83,26 @@ def create_room_layout_RANDOM(room: Room, layout_model) -> RoomLayout:
 # -----------------------
 # 绘制布局
 # -----------------------
+def _draw_room(room: Room, canvas: CVCanvas) -> np.ndarray:
+    """
+    把一个 Room 画成一张 OpenCV 图像（BGR）
+    假定房间是 axis-aligned 的矩形（暂时忽略旋转 r）
+    """
+
+    room_vects = room.shape.get_polygon_points()      # 假设 Room.shape 是 Rectangle(width, height)
+
+  
+   
+
+    # 使用 room 本地坐标系，原点在房间中心
+    corner_world_room = room.world_corners()
+    img = canvas.draw_polygon(corner_world_room, color=(200, 200, 200))
+    img = canvas.draw_text(
+        f"Room: {room.name}",
+        position_world=(room_left + 0.2, room_top + 0.2),
+      )
+    return img
+
 
 def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
     """
@@ -99,28 +121,11 @@ def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
         f"Room: {room.name}",
         position_world=(room_left + 0.2, room_top + 0.2),
       )
-   
-
-    
+       
 
     # 家具
     for furn in layout.furnitures:
-        # 这里假设：Furniture.spec.type 对应的 spec.size 是 Rectangle
-        frect: Rectangle = furniture_lib.get_spec(furn.spec.type).shape
-        fx = furn.transform.x
-        fy = furn.transform.y
-        fw = frect.width
-        fh = frect.height
-
-        # fx_left = fx - fw / 2.0
-        # fx_right = fx + fw / 2.0
-        # fy_top = fy - fh / 2.0
-        # fy_bottom = fy + fh / 2.0
-
-        tl_f_w = furn.transform.local_to_world(-fw / 2.0, -fh / 2.0)
-        br_f_w = furn.transform.local_to_world(fw / 2.0, fh / 2.0)
-
-       
+        # 这里假设：Furniture.spec.type 对应的 spec.size 是 Rectangle 
         corner_world = furn.world_corners()   
 
         color = (0, 0, 255)  # 红色
@@ -182,6 +187,7 @@ if __name__ == "__main__":
         furniture_example_bed,
         furniture_example_table,
         furniture_example_wardrobe,
+        furniture_example_desk_round,
     ]
 
     rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)

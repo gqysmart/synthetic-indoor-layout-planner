@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Tuple
 
-from my_app.backend.lib.geometry.shape import PlacedRectangle,Rectangle
-from my_app.backend.lib.geometry.shape import Transform
+from my_app.core.geometry.shape import Rectangle, Arc
+from my_app.core.geometry.coorinateSystem import Transform
 
 
 class FurnitureType(Enum):
@@ -12,6 +12,7 @@ class FurnitureType(Enum):
     WARDROBE_2D = "wardrobe_2d"
     SOFA_3SEAT = "sofa_3seat"
     TABLE_4P = "table_4p"
+    DESK_ROUND = "desk_round"
 
 
 @dataclass
@@ -32,17 +33,7 @@ class Furniture:
         顺序：左上 → 右上 → 右下 → 左下（逆时针）
         """
 
-        fw = self.spec.shape.width
-        fh = self.spec.shape.height   # 或 height，看你的字段名
-
-        # 家具本地坐标下的四个角
-        # （⚠️ y 轴向下为正，与 OpenCV 坐标系一致）
-        local_corners = [
-            (-fw / 2.0, -fh / 2.0),   # 左上
-            ( fw / 2.0, -fh / 2.0),   # 右上
-            ( fw / 2.0,  fh / 2.0),   # 右下
-            (-fw / 2.0,  fh / 2.0),   # 左下
-        ]
+        local_corners = self.spec.shape.get_polygon_points()
 
         # 转换到世界坐标
         return [
@@ -61,6 +52,12 @@ RAW_FURNITURE_DATA = [
     },
     {
         "code": FurnitureType.DESK_STD,
+        "size": (1.2, 0.6),
+        "reach_mode": "front",     # 只需要前面可达
+        "margin": 0.7,
+    },
+      {
+        "code": FurnitureType.DESK_ROUND,
         "size": (1.2, 0.6),
         "reach_mode": "front",     # 只需要前面可达
         "margin": 0.7,
@@ -121,9 +118,14 @@ class FurnitureLibrary:
 
             offsets = compute_reach_offsets(width, depth, mode, margin)
 
+            shape = Rectangle(width=width, height=depth)
+            if f_type == FurnitureType.DESK_ROUND:
+                shape = Arc(radius=width/2, start_angle=0, end_angle=360)
+
+
             specs[f_type] = FurnitureSpec(
                 type=f_type,
-                shape=Rectangle(width=width, height=depth),
+                shape=shape,
                 reach_offsets=offsets,
             )
 
@@ -165,16 +167,22 @@ furniture_lib = FurnitureLibrary.from_default_data()
 furniture_example_table = Furniture(
     id="table_01",
     spec=furniture_lib.get_spec(FurnitureType.TABLE_4P),
-    transform=Transform(x=0, y=0, r=30),
+    transform=Transform(x=1.1, y=0, r=90),
 )
 
 furniture_example_bed = Furniture(
     id="bed_01",
     spec=furniture_lib.get_spec(FurnitureType.BED_DOUBLE),
-    transform=Transform(x=0, y=0, r=45),
+    transform=Transform(x=-0.5, y=-0.75, r=0),
 )
 furniture_example_wardrobe = Furniture(
     id="wardrobe_01",
     spec=furniture_lib.get_spec(FurnitureType.WARDROBE_2D),
-    transform=Transform(x=0, y=0, r=90),
+    transform=Transform(x=-0.6, y=1.2, r=0),
 )   
+
+furniture_example_desk_round = Furniture(
+    id="desk_round_01",
+    spec=furniture_lib.get_spec(FurnitureType.DESK_ROUND),
+    transform=Transform(x=1.1, y=0, r=90),
+)

@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Tuple
 
-
+WallID = int 
 @dataclass
 class Door:
     """
@@ -9,6 +9,7 @@ class Door:
     position: world-space center of the doorway.
     width: opening width measured along the wall.
     """
-    position: Tuple[float, float]
-    width: float
+    offset: float = 0.0
+    wallID: WallID = 0
+    width: float = 0.9
     name: str | None = None
