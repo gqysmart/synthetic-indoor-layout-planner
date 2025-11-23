@@ -4,7 +4,8 @@ from enum import Enum
 import numpy as np
 import cv2 as cv
 
-from my_app.core.geometry.pixelCoorinateSystem import PixelCoordinateSystem
+from my_app.backend.core.geometry.coorinate_system import PixelCoordinateSystem,Transform
+from my_app.backend.core.geometry.shape import Rectangle
 from my_app.backend.lib.view.cv_canvas import CVViewport as CVCanvas
 from my_app.backend.domain.room import Room, room_example_a, room_example_b
 from my_app.backend.domain.furniture import (
@@ -17,8 +18,7 @@ from my_app.backend.domain.furniture import (
     furniture_example_desk_round,
     furniture_lib,
 )
-from my_app.core.geometry.shape import  Rectangle
-from my_app.core.geometry.coorinateSystem import Transform
+
 # from my_app.backend.planner_core_simplified.model_simplified import Layout  # 暂时不用就先注释掉，免得 lint 报 unused
 
 
@@ -36,7 +36,6 @@ class LayoutMethod(Enum):
 class RoomLayout:
     room: Room
     furnitures: list[Furniture]
-    layout_method: LayoutMethod
 
 
 # -----------------------
@@ -56,24 +55,25 @@ def create_room_layout(
     match method:
         case LayoutMethod.MANUAL:
             # 手动：直接用现成的家具
-            return RoomLayout(room=room, furnitures=furnitures, layout_method=method)
+            return RoomLayout(room=room, furnitures=furnitures)
 
         case LayoutMethod.RANDOM:
             # TODO: 在这里实现随机布局逻辑
-            return RoomLayout(room=room, furnitures=furnitures, layout_method=method)
+            return RoomLayout(room=room, furnitures=furnitures)
 
         case LayoutMethod.CSP:
             # TODO: 在这里调用 CSP solver 生成新的家具 transform
-            return RoomLayout(room=room, furnitures=furnitures, layout_method=method)
+            return RoomLayout(room=room, furnitures=furnitures)
 
         case _:
             # unknown method，先退回 MANUAL
-            return RoomLayout(room=room, furnitures=furnitures, layout_method=LayoutMethod.MANUAL)
+            return RoomLayout(room=room, furnitures=furnitures)
 
 
 # 如你以后真的需要基于 Layout(求解结果) 的二次封装，可以在这两个函数里实现：
-def create_room_layout_MANUAL(room: Room, layout_model) -> RoomLayout:
-    raise NotImplementedError("MANUAL 布局基于 layout_model 的版本还没实现")
+def create_room_layout_MANUAL(room: Room, furnitures: list[Furniture]) -> RoomLayout:
+    return RoomLayout(room=room, furnitures=furnitures)
+    
 
 
 def create_room_layout_RANDOM(room: Room, layout_model) -> RoomLayout:
@@ -115,7 +115,7 @@ def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
 
     # 使用 room 本地坐标系，原点在房间中心
    
-    corner_world_room = room.world_corners()
+    corner_world_room = room.world_polygon()
     img = canvas.draw_polygon(corner_world_room, color=(200, 200, 200))
     img = canvas.draw_text(
         f"Room: {room.name}",
@@ -126,12 +126,12 @@ def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
     # 家具
     for furn in layout.furnitures:
         # 这里假设：Furniture.spec.type 对应的 spec.size 是 Rectangle 
-        corner_world = furn.world_corners()   
+        corner_world = furn.world_polygon()   
 
         color = (0, 0, 255)  # 红色
-        if( furn.spec.type == FurnitureType.BED_DOUBLE ):
+        if( furn.type == FurnitureType.BED_DOUBLE ):
             color = (255, 0, 0)  # 蓝色
-        if( furn.spec.type == FurnitureType.WARDROBE_2D ):
+        if( furn.type == FurnitureType.WARDROBE_2D ):
             color = (0, 255, 0)  # 绿色 
 
         #cv.rectangle(img, tl_f, br_f, color, thickness=-1)  # 实心红色
@@ -177,6 +177,33 @@ def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
     return img
 
 
+room_a = room_example_a
+furniture_list_1 = [
+    furniture_example_bed.clone_to("bed_01_room_a", Transform(x=-0.8, y=-0.9, r=0)),
+    furniture_example_table.clone_to("table_01_room_a", Transform(x=1.4, y=-1.05, r=90)),
+    furniture_example_wardrobe.clone_to("wardrobe_01_room_a", Transform(x=-0.9, y=1.35, r=0)),
+    furniture_example_desk_round.clone_to("desk_round_01_room_a", Transform(x=0, y=0, r=90)),
+]
+
+layout_example_a = create_room_layout_MANUAL(
+    room=room_a,
+    furnitures=furniture_list_1,
+)
+
+
+room_b = room_example_b
+furniture_list_2 = [
+    furniture_example_bed.clone_to("bed_01_room_b", Transform(x=-0.8, y=-0.9, r=0)),
+    furniture_example_table.clone_to("table_01_room_b", Transform(x=1.4, y=-1.05, r=90)),
+    furniture_example_wardrobe.clone_to("wardrobe_01_room_b", Transform(x=-0.9, y=1.35, r=0)),
+    furniture_example_desk_round.clone_to("desk_round_01_room_b", Transform(x=0, y=0, r=90)),
+]
+
+layout_example_b = create_room_layout_MANUAL(
+    room=room_a,
+    furnitures=furniture_list_1,
+)
+
 # -----------------------
 # main：测试绘制 Room A 的手动布局
 # -----------------------
@@ -211,12 +238,4 @@ if __name__ == "__main__":
         background_color=(240, 240, 240),
     )
 
-
-    layout = create_room_layout(
-        room,
-        furniture_list,
-        method=LayoutMethod.MANUAL,
-    )
-
-    img = draw_layout(layout, canvas)
-   
+    img = draw_layout(layout_example_a, canvas)

@@ -40,6 +40,17 @@ class Transform:
 
         return wx, wy
 
+    def clone(self) -> 'Transform':
+        return Transform(
+            x=self.x,
+            y=self.y,
+            r=self.r,
+            sx=self.sx,
+            sy=self.sy,
+        )
+    
+# ==========================================================
+    
 
 
 @dataclass

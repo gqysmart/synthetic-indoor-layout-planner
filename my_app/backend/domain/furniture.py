@@ -1,9 +1,11 @@
-from dataclasses import dataclass
+from dataclasses import dataclass,field
 from enum import Enum
 from typing import Dict, List, Tuple
 
-from my_app.core.geometry.shape import Rectangle, Arc
-from my_app.core.geometry.coorinateSystem import Transform
+from my_app.backend.core.geometry.shape import Rectangle, Arc, Shape
+from my_app.backend.core.geometry.coorinate_system import Transform
+
+from my_app.backend.core.geometry.placed_entity import PlacedEntity
 
 
 class FurnitureType(Enum):
@@ -18,29 +20,38 @@ class FurnitureType(Enum):
 @dataclass
 class FurnitureSpec:
     type: FurnitureType
-    shape: Rectangle  # (width, depth) in meters
+    shape: Shape
     reach_offsets: List[Tuple[float, float]]
 
 
+
 @dataclass
-class Furniture:
-    id: str
-    spec: FurnitureSpec
-    transform: Transform
-    def world_corners(self) -> list[tuple[float, float]]:
-        """
-        返回家具旋转后的四个世界坐标角点（顺序适用于 cv.fillPoly）：
-        顺序：左上 → 右上 → 右下 → 左下（逆时针）
-        """
+class Furniture(PlacedEntity):
+    name:str
+    type: FurnitureType 
+    
+    @classmethod
+    def from_type(
+        cls,
+        id: str,
+        name:str,
+        type: FurnitureType,
+        furniture_lib: "FurnitureLibrary",
+        transform: Transform = Transform()) -> "Furniture":
 
-        local_corners = self.spec.shape.get_polygon_points()
-
-        # 转换到世界坐标
-        return [
-            self.transform.local_to_world(x, y)
-            for (x, y) in local_corners
-        ]
-
+        return cls(
+            name=name,
+            type=type,
+            shape_ref = furniture_lib.get_spec(type).shape,
+            transform=transform)
+    
+    def clone_to(self, new_name:str, transform: Transform) -> "Furniture":
+        return Furniture(
+            name=new_name,
+            type=self.type,
+            shape_ref=self.shape_ref,
+            transform=transform,
+        )
 
 
 RAW_FURNITURE_DATA = [
@@ -164,25 +175,33 @@ class FurnitureLibrary:
 
 furniture_lib = FurnitureLibrary.from_default_data()
 
-furniture_example_table = Furniture(
+furniture_example_table = Furniture.from_type(
     id="table_01",
-    spec=furniture_lib.get_spec(FurnitureType.TABLE_4P),
-    transform=Transform(x=1.1, y=0, r=90),
+    name="Dining Table",
+    type=FurnitureType.TABLE_4P,
+    furniture_lib=furniture_lib,
+    transform=Transform(x=1.4, y=-1.05, r=90),
 )
 
-furniture_example_bed = Furniture(
+furniture_example_bed = Furniture.from_type (
     id="bed_01",
-    spec=furniture_lib.get_spec(FurnitureType.BED_DOUBLE),
-    transform=Transform(x=-0.5, y=-0.75, r=0),
+    name="Double Bed",
+    type=FurnitureType.BED_DOUBLE,
+    furniture_lib=furniture_lib,
+    transform=Transform(x=-0.8, y=-0.9, r=0),
 )
-furniture_example_wardrobe = Furniture(
+furniture_example_wardrobe = Furniture.from_type(
     id="wardrobe_01",
-    spec=furniture_lib.get_spec(FurnitureType.WARDROBE_2D),
-    transform=Transform(x=-0.6, y=1.2, r=0),
+    name="Wardrobe",
+    type=FurnitureType.WARDROBE_2D,
+    furniture_lib=furniture_lib,
+    transform=Transform(x=0, y=1.35, r=0),
 )   
 
-furniture_example_desk_round = Furniture(
+furniture_example_desk_round = Furniture.from_type(
     id="desk_round_01",
-    spec=furniture_lib.get_spec(FurnitureType.DESK_ROUND),
-    transform=Transform(x=1.1, y=0, r=90),
+    name="Round Desk",
+    type=FurnitureType.DESK_ROUND,
+    furniture_lib=furniture_lib,
+    transform=Transform(x=0, y=0, r=90),
 )

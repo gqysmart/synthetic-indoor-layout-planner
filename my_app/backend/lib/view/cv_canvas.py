@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy as np
 import cv2 as cv
 
-from my_app.core.geometry.pixelCoorinateSystem import PixelCoordinateSystem
+from my_app.backend.core.geometry.coorinate_system import PixelCoordinateSystem
 
 
 @dataclass
