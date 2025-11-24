@@ -80,6 +80,10 @@ class PixelCoordinateSystem:
         # 注意：这里假设 world 和 pixel 的 y 方向都是“向下为正”
         self.world_left_top = (cx - half_w_m, cy - half_h_m)
 
+    @property
+    def pixel_size_in_world(self) -> float:
+        """每个像素在 world 里的实际尺寸（米）。"""
+        return 1.0 / self.pixels_per_meter
     # ------------------------------------------------------------------
     # 配置接口：缩放 / 平移
     # ------------------------------------------------------------------
@@ -104,7 +108,7 @@ class PixelCoordinateSystem:
         wx0, wy0 = self.world_left_top
         col = int(round((x - wx0) * self.pixels_per_meter))
         row = int(round((y - wy0) * self.pixels_per_meter))
-        return col, row
+        return  row, col
 
     def pixel_to_world(self, col: int, row: int) -> Tuple[float, float]:
         """

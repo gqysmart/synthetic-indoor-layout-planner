@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field,replace
 from abc import ABC, abstractmethod
 from typing import Literal, Union
 from my_app.backend.core.geometry.coorinate_system import Transform
@@ -29,14 +29,14 @@ class PlacedEntity(ABC):
         """
         Create a copy of this entity.
         """
-        return type(self)(
-            shape_ref=self.shape_ref,
-            transform=Transform(
+        
+            
+        new_transform=Transform(
                 x=self.transform.x,
                 y=self.transform.y,
                 r=self.transform.r,
             ),
-        )
+        return replace(self, transform=new_transform)
         
     
     def move(self, dx: float, dy: float) -> None:
