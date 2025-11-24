@@ -2,10 +2,10 @@ from dataclasses import dataclass,field
 from enum import Enum
 from typing import Dict, List, Tuple
 
-from my_app.backend.core.geometry.shape import Rectangle, Arc, Shape
-from my_app.backend.core.geometry.coorinate_system import Transform
+from silp.core.geometry.shape import Rectangle, Arc, Shape
+from silp.core.geometry.coorinate_system import Transform
 
-from my_app.backend.core.geometry.placed_entity import PlacedEntity
+from silp.core.geometry.placed_entity import PlacedEntity
 
 
 class FurnitureType(Enum):

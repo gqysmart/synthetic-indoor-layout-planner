@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Tuple
 
-from my_app.backend.core.geometry.shape import Line
+from silp.core.geometry.shape import Line
 
 WallID = int 
 @dataclass

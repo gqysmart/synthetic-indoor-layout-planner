@@ -3,14 +3,16 @@ from collections import deque
 from dataclasses import replace
 from typing import List, Tuple, Dict, Optional
 import math
-from my_app.backend.core.geometry.placed_entity import PlacedEntity
-from my_app.backend.core.geometry.coorinate_system import PixelCoordinateSystem, Transform
+from silp.core.geometry.placed_entity import PlacedEntity
+from silp.core.geometry.coorinate_system import PixelCoordinateSystem, Transform
+
 
 import numpy as np
 import cv2 as cv
 from enum import Enum
+import time
 
-from my_app.backend.domain.layout import layout_example_a, layout_example_b 
+from silp.domain.layout import layout_example_a, layout_example_b 
 
 State = Tuple[int, int, int]  # (row, col, theta_deg)
 
@@ -21,6 +23,10 @@ class MaskValue(Enum):
 
 path_states_debug: List[State] = []
 image_debug: np.ndarray = None
+debug_time_start: float = 0.0
+debug_time_end: float = 0.0
+
+debug = True
 
 def find_path_bfs(
     entity: PlacedEntity,
@@ -31,16 +37,24 @@ def find_path_bfs(
     pcs: PixelCoordinateSystem,
     step_theta: float = 90.0,   # 以度为单位
 ) -> List[Transform]:
+    # ======== 角度离散：全用“度” ========
+    ###debug
+    global debug_time_start
+    debug_time_start = time.perf_counter()
+    ### debug end
+
     step_theta_deg = step_theta
     num_theta = int(360 / step_theta_deg)
 
     def theta_to_idx(theta_deg: int) -> int:
         return int(theta_deg // step_theta_deg) % num_theta
 
-    # --- 1. State -> Transform / PlacedEntity ---
+    # ======== 1. State -> Transform / PlacedEntity ========
+
     def make_transform_from_state(state: State) -> Transform:
         r, c, theta_deg = state
         x, y = pcs.pixel_to_world(c, r)
+        # 用 start 作为模板，只改 x, y, r
         return Transform(x=x, y=y, r=theta_deg)
 
     entity_tempt = entity.clone()
@@ -49,77 +63,67 @@ def find_path_bfs(
         new_t = make_transform_from_state(state)
         return replace(entity_tempt, transform=new_t)
 
-    # --- 2. goal 状态 ---
+    # ======== 2. goal 判定（像素 + 角度） ========
+
     gr, gc = pcs.world_to_pixel(goal.x, goal.y)
-    goal_theta_snapped = (round(goal.r / step_theta_deg) * step_theta_deg) % 360
+    # 把 goal 的角度 snap 到离散网格（比如 37° → 45°）
+    goal_theta_snapped = round(goal.r / step_theta_deg) * step_theta_deg % 360
 
     def is_goal_state(state: State) -> bool:
         r, c, theta_deg = state
         return (r == gr) and (c == gc) and (theta_deg == goal_theta_snapped)
 
-    # --- 3. 建立基本 mask ---
+    # ======== 3. 建立 mask（略，沿用你那一段） ========
+
     height_px, width_px = pcs.canvas_size
     base_mask = np.zeros((height_px, width_px), dtype=np.uint8)
 
-    # container 区域
     container_poly_world = container.world_polygon()
-    container_mask = pcs.polygon_to_mask(
-        container_poly_world, value=MaskValue.CONTAINER.value
-    )
+    container_mask = pcs.polygon_to_mask(container_poly_world, value=MaskValue.CONTAINER.value)
     base_mask[container_mask == MaskValue.CONTAINER.value] = MaskValue.CONTAINER.value
+ 
 
-    global image_debug
-    image_debug = base_mask.copy()
-
-    # 固定障碍物（墙内的家具/柱子等）
     obstacle_mask = pcs.empty_mask()
     for obs in obstacle_list:
         poly_world = obs.world_polygon()
         m = pcs.polygon_to_mask(poly_world, value=MaskValue.OBSTACLE.value)
         obstacle_mask[m == MaskValue.OBSTACLE.value] = MaskValue.OBSTACLE.value
 
-    h, w = base_mask.shape
+    free_mask = (
+        (obstacle_mask != MaskValue.OBSTACLE.value)
+        & (base_mask == MaskValue.CONTAINER.value)
+    )
 
-    # ========= 🌟 新增：用距离变换做一次性“安全区”计算 =========
+    h, w = free_mask.shape
 
-    # 1 = 障碍，0 = 空
-    # 障碍 = （非 container 区域）或（室内固定障碍）
-    obstacle_binary = np.zeros_like(base_mask, dtype=np.uint8)
-    # 室外区域也算障碍
-    obstacle_binary[container_mask != MaskValue.CONTAINER.value] = 1
-    # 室内固定障碍
-    obstacle_binary[obstacle_mask == MaskValue.OBSTACLE.value] = 1
-
-    # 0 = 空，1 = 障碍；distanceTransform 里 0 是障碍，非 0 是可行区域
-    # 所以我们用 (1 - obstacle_binary)
-    dist = cv.distanceTransform(1 - obstacle_binary, cv.DIST_L2, 3)
-
-    # 家具外接圆半径（像素）：用 spec 的宽高估一个
-    # 你可以根据自己的 PlacedEntity / spec 的接口稍微调整这里的取法
-    fw_m = entity.spec.shape.width
-    fh_m = entity.spec.shape.height
-    fw_px = fw_m * pcs.pixels_per_meter
-    fh_px = fh_m * pcs.pixels_per_meter
-
-    # 半对角线作为安全半径
-    furn_radius_px = 0.5 * math.hypot(fw_px, fh_px)
-
-    # ========= 改写 is_state_valid =========
+    # ======== 4. 状态合法性检查 ========
 
     def is_state_valid(state: State) -> bool:
         r, c, theta_deg = state
         if not (0 <= r < h and 0 <= c < w):
             return False
-
-        # dist[r, c] 表示这个点到最近障碍的像素距离
-        if dist[r, c] < furn_radius_px:
+        if not free_mask[r, c]:
             return False
 
-        # 如果你暂时只想看 BFS 能不能跑通，可以先不用 polygon 精确检查
-        # 真要严谨，可以在这里加一个“少量抽样点”的 polygon 碰撞，而不是整图扫描
+        e_tmp = make_temp_placed_entity_from_state(state)
+        entity_mask = pcs.polygon_to_mask(e_tmp.world_polygon(), value=MaskValue.FURNITURE.value)
+
+        if np.any(
+            (entity_mask == MaskValue.FURNITURE.value)
+            & (container_mask != MaskValue.CONTAINER.value)
+        ):
+            return False
+
+        if np.any(
+            (entity_mask == MaskValue.FURNITURE.value)
+            & (obstacle_mask == MaskValue.OBSTACLE.value)
+        ):
+            return False
+
         return True
 
-    # --- 5. BFS ---
+    # ======== 5. BFS 搜索 ========
+
     sx, sy = start.x, start.y
     start_theta_deg = start.r % 360
     sr, sc = pcs.world_to_pixel(sx, sy)
@@ -127,9 +131,9 @@ def find_path_bfs(
     start_state: State = (sr, sc, int(start_theta_deg))
 
     if not is_state_valid(start_state):
-        print("start_state is invalid")
         return []
 
+    from collections import deque
     q: deque[State] = deque()
     q.append(start_state)
 
@@ -139,6 +143,7 @@ def find_path_bfs(
     parent: Dict[State, Optional[State]] = {start_state: None}
 
     move_dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
     found_goal: Optional[State] = None
 
     while q:
@@ -151,7 +156,7 @@ def find_path_bfs(
         r, c, theta_deg = state
         theta_idx = theta_to_idx(theta_deg)
 
-        # 平移
+        # 1）平移：角度不变
         for dr, dc in move_dirs:
             nr, nc = r + dr, c + dc
             ntheta_deg = theta_deg
@@ -168,19 +173,18 @@ def find_path_bfs(
                 parent[next_state] = state
                 q.append(next_state)
 
-        # 原地旋转
+        # 2）旋转：原地转动
         for d in (-1, 1):
             ntheta_deg = (theta_deg + d * step_theta_deg) % 360
             ntheta_idx = theta_to_idx(ntheta_deg)
             next_state: State = (r, c, int(ntheta_deg))
 
-            if (
-                not visited[r, c, ntheta_idx]
-                and is_state_valid(next_state)
-            ):
+            if not visited[r, c, ntheta_idx] and is_state_valid(next_state):
                 visited[r, c, ntheta_idx] = True
                 parent[next_state] = state
                 q.append(next_state)
+
+    # ======== 6. 回溯 ========
 
     if found_goal is None:
         return []
@@ -192,8 +196,17 @@ def find_path_bfs(
         cur = parent[cur]
 
     path_states.reverse()
+    ###debug
+    global image_debug
+    image_debug = base_mask.copy()
     global path_states_debug
-    path_states_debug = path_states
+    path_states_debug= path_states
+    global debug_time_end
+    debug_time_end = time.perf_counter()
+    
+    if debug:
+        print(f"BFS pathfinding took {debug_time_end - debug_time_start:.4f} seconds")  
+    ### debug end
 
     path_transforms: List[Transform] = [make_transform_from_state(s) for s in path_states]
     return path_transforms

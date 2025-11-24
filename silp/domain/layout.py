@@ -4,11 +4,11 @@ from enum import Enum
 import numpy as np
 import cv2 as cv
 
-from my_app.backend.core.geometry.coorinate_system import PixelCoordinateSystem,Transform
-from my_app.backend.core.geometry.shape import Rectangle
-from my_app.backend.lib.view.cv_canvas import CVViewport as CVCanvas
-from my_app.backend.domain.room import Room, room_example_a, room_example_b
-from my_app.backend.domain.furniture import (
+from silp.core.geometry.coorinate_system import PixelCoordinateSystem,Transform
+from silp.core.geometry.shape import Rectangle
+from silp.lib.view.cv_canvas import CVViewport as CVCanvas
+from silp.domain.room import Room, room_example_a, room_example_b
+from silp.domain.furniture import (
     FurnitureType,
     FurnitureSpec,
     Furniture,
@@ -19,7 +19,7 @@ from my_app.backend.domain.furniture import (
     furniture_lib,
 )
 
-# from my_app.backend.planner_core_simplified.model_simplified import Layout  # 暂时不用就先注释掉，免得 lint 报 unused
+# from silp.services.planner_core_simplified.model_simplified import Layout  # 暂时不用就先注释掉，免得 lint 报 unused
 
 
 # -----------------------

@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field,replace
 from abc import ABC, abstractmethod
 from typing import Literal, Union
-from my_app.backend.core.geometry.coorinate_system import Transform
-from my_app.backend.core.geometry.shape import Shape
+from silp.core.geometry.coorinate_system import Transform
+from silp.core.geometry.shape import Shape
 
 
 @dataclass(kw_only=True)

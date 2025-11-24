@@ -6,7 +6,7 @@ from airflow.sdk import dag, task
 
 
 
-from my_app.backend.planner.layout_csp  import (
+from silp.services.planner.layout_csp import (
     load_room_data,
     random_place_furnitures,
     enforce_csp,

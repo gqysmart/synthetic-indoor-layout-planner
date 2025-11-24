@@ -1,15 +1,15 @@
 from dataclasses import dataclass,field
-from my_app.backend.core.geometry.shape import Line, Rectangle,Shape
-from my_app.backend.core.geometry.coorinate_system import Transform
+from silp.core.geometry.shape import Line, Rectangle,Shape
+from silp.core.geometry.coorinate_system import Transform
 from enum import Enum
 from typing import List, Tuple
-from my_app.backend.core.geometry.placed_entity import PlacedEntity
+from silp.core.geometry.placed_entity import PlacedEntity
 
 import cv2
 import numpy as np
 
-from my_app.backend.domain.door import Door
-from my_app.backend.domain.furniture import Furniture, FurnitureLibrary, FurnitureSpec, FurnitureType, furniture_lib
+from silp.domain.door import Door
+from silp.domain.furniture import Furniture, FurnitureLibrary, FurnitureSpec, FurnitureType, furniture_lib
 
 
 @dataclass
@@ -64,5 +64,4 @@ room_example_b = Room.create_rec_room(
     6.0,
     5.0,
 )
-
 
