@@ -10,11 +10,11 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
-from ..lib.connection_manager import ConnectionManager
-from ..models.api import LayoutRequest
-from ..models.room import Room
-from ..services.job_runner import run_planner_job
-from ..services.room_parser import room_from_upload
+from silp.lib.connection_manager import ConnectionManager
+from silp.api.schemas.api import LayoutRequest
+from silp.domain.room import Room
+from silp.services.job_runner import run_planner_job
+
 
 router = APIRouter()
 manager = ConnectionManager()
@@ -55,10 +55,10 @@ async def create_job(
         maxNumberOfInteration=maxNumberOfInteration,
         methond=methond,
     )
-    room = await room_from_upload(roomFile)
+    # room = await room_from_upload(roomFile)
 
-    async with pending_jobs_lock:
-        pending_jobs[job_id] = (request, room)
+    # async with pending_jobs_lock:
+    #     pending_jobs[job_id] = (request, room)
 
     return {"job_id": job_id}
 

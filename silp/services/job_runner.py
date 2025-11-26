@@ -6,8 +6,8 @@ import asyncio
 from typing import Protocol
 import uuid 
 
-from ..models.api import LayoutRequest
-from ..models.room import Room
+from silp.api.schemas.api import LayoutRequest
+from silp.domain.room import Room
 from .room_factory import random_room
 from .room_renderer import room_image_data_url
 
