@@ -33,8 +33,28 @@ export function FurnitureModel3D({
 }) {
     const modelPath = getModelPath(name);
     if (!modelPath) return null;
+    switch (name) {
+        case "bed":
+            return <BedModel3D safe_path={modelPath} transform={transform} />;
+        case "wardrobe":
+            return <WardrobeModel3D safe_path={modelPath} transform={transform} />;
+        case "desk":
+            return <DeskModel3D safe_path={modelPath} transform={transform} />;
+        default:
+            return null;
+    }
+}
 
-    const gltf = useGLTF(modelPath);
+export function BedModel3D({
+    safe_path,
+    transform = defaultTransform,
+}: {
+    safe_path: string;
+    transform?: Transform;
+}) {
+
+
+    const gltf = useGLTF(safe_path);
 
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {
@@ -66,19 +86,15 @@ export function FurnitureModel3D({
         </group>
     );
 }
-
-
 export function WardrobeModel3D({
-    name,
+    safe_path,
     transform = defaultTransform,
 }: {
-    name: string;
+    safe_path: string;
     transform?: Transform;
 }) {
-    const modelPath = getModelPath(name);
-    if (!modelPath) return null;
 
-    const gltf = useGLTF(modelPath);
+    const gltf = useGLTF(safe_path);
 
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {
@@ -113,16 +129,15 @@ export function WardrobeModel3D({
 
 
 export function DeskModel3D({
-    name,
+    safe_path,
     transform = defaultTransform,
 }: {
-    name: string;
+    safe_path: string;
     transform?: Transform;
 }) {
-    const modelPath = getModelPath(name);
-    if (!modelPath) return null;
 
-    const gltf = useGLTF(modelPath);
+
+    const gltf = useGLTF(safe_path);
 
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {

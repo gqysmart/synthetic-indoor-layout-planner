@@ -124,12 +124,11 @@ function LayoutScene({ algorithm = "csp" }: { algorithm?: Algorithm }) {
             <FurnitureModel3D
                 name="bed"
             />
-            <DeskModel3D
+            <FurnitureModel3D
                 name="desk"
             />
-            <WardrobeModel3D
-                name="wardrobe"
-            />
+            <FurnitureModel3D name="wardrobe" />
+
 
             <Character />
 
