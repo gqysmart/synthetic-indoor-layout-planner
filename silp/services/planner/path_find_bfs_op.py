@@ -1,243 +1,110 @@
-from __future__ import annotations
 from collections import deque
-from dataclasses import replace
-from typing import List, Tuple, Dict, Optional
-import math
-from silp.core.geometry.placed_entity import PlacedEntity
-from silp.core.geometry.coorinate_system import PixelCoordinateSystem, Transform
+from typing import Dict, Optional, Tuple, List
 
 import numpy as np
-import cv2 as cv
-from enum import Enum
 
-from silp.domain.layout import layout_example_a, layout_example_b 
+from silp.core.geometry.coorinate_system import PixelCoordinateSystem
+from silp.core.geometry.shape import Rectangle
+from silp.services.planner.navigation_field import PixelNavigationField, SimpleAgent
+from silp.domain.layout import room_example_a
+from silp.domain.furniture import (
+    furniture_example_table,
+    furniture_example_desk_round,
+    furniture_example_bed,
+    furniture_example_wardrobe,
+)
 
-State = Tuple[int, int, int]  # (row, col, theta_deg)
+State = Tuple[int, int]  # (row, col)
+NEIGHBORS: List[Tuple[int, int]] = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # 上下左右
 
-class MaskValue(Enum):
-    CONTAINER = 200
-    OBSTACLE = 10
-    FURNITURE = 1
 
-path_states_debug: List[State] = []
-image_debug: np.ndarray = None
+def bfs_shortest_path(
+    start: State,
+    goal: State,
+    nav: PixelNavigationField,
+) -> Optional[List[State]]:
+    """
+    使用广度优先搜索（BFS）算法在网格中找到从起点到终点的最短路径。
 
-def find_path_bfs(
-    entity: PlacedEntity,
-    container: PlacedEntity,
-    obstacle_list: List[PlacedEntity],
-    start: Transform,      # 假定 start.r 是“度”
-    goal: Transform,       # 假定 goal.r 也是“度”
-    pcs: PixelCoordinateSystem,
-    step_theta: float = 90.0,   # 以度为单位
-) -> List[Transform]:
-    step_theta_deg = step_theta
-    num_theta = int(360 / step_theta_deg)
+    参数:
+    - start: 起始状态 (row, col)
+    - goal: 目标状态 (row, col)
+    - nav: PixelNavigationField 对象，提供网格信息和障碍物检测功能。
+    """
+    sr, sc = start
+    gr, gc = goal
 
-    def theta_to_idx(theta_deg: int) -> int:
-        return int(theta_deg // step_theta_deg) % num_theta
+    # 起点或终点不可走，直接返回 None
+    if not nav.is_walkable(sr, sc) or not nav.is_walkable(gr, gc):
+        return None
 
-    # --- 1. State -> Transform / PlacedEntity ---
-    def make_transform_from_state(state: State) -> Transform:
-        r, c, theta_deg = state
-        x, y = pcs.pixel_to_world(c, r)
-        return Transform(x=x, y=y, r=theta_deg)
-
-    entity_tempt = entity.clone()
-
-    def make_temp_placed_entity_from_state(state: State) -> PlacedEntity:
-        new_t = make_transform_from_state(state)
-        return replace(entity_tempt, transform=new_t)
-
-    # --- 2. goal 状态 ---
-    gr, gc = pcs.world_to_pixel(goal.x, goal.y)
-    goal_theta_snapped = (round(goal.r / step_theta_deg) * step_theta_deg) % 360
-
-    def is_goal_state(state: State) -> bool:
-        r, c, theta_deg = state
-        return (r == gr) and (c == gc) and (theta_deg == goal_theta_snapped)
-
-    # --- 3. 建立基本 mask ---
-    height_px, width_px = pcs.canvas_size
-    base_mask = np.zeros((height_px, width_px), dtype=np.uint8)
-
-    # container 区域
-    container_poly_world = container.world_polygon()
-    container_mask = pcs.polygon_to_mask(
-        container_poly_world, value=MaskValue.CONTAINER.value
-    )
-    base_mask[container_mask == MaskValue.CONTAINER.value] = MaskValue.CONTAINER.value
-
-    global image_debug
-    image_debug = base_mask.copy()
-
-    # 固定障碍物（墙内的家具/柱子等）
-    obstacle_mask = pcs.empty_mask()
-    for obs in obstacle_list:
-        poly_world = obs.world_polygon()
-        m = pcs.polygon_to_mask(poly_world, value=MaskValue.OBSTACLE.value)
-        obstacle_mask[m == MaskValue.OBSTACLE.value] = MaskValue.OBSTACLE.value
-
-    h, w = base_mask.shape
-
-    # ========= 🌟 新增：用距离变换做一次性“安全区”计算 =========
-
-    # 1 = 障碍，0 = 空
-    # 障碍 = （非 container 区域）或（室内固定障碍）
-    obstacle_binary = np.zeros_like(base_mask, dtype=np.uint8)
-    # 室外区域也算障碍
-    obstacle_binary[container_mask != MaskValue.CONTAINER.value] = 1
-    # 室内固定障碍
-    obstacle_binary[obstacle_mask == MaskValue.OBSTACLE.value] = 1
-
-    # 0 = 空，1 = 障碍；distanceTransform 里 0 是障碍，非 0 是可行区域
-    # 所以我们用 (1 - obstacle_binary)
-    dist = cv.distanceTransform(1 - obstacle_binary, cv.DIST_L2, 3)
-
-    # 家具外接圆半径（像素）：用 spec 的宽高估一个
-    # 你可以根据自己的 PlacedEntity / spec 的接口稍微调整这里的取法
-    fw_m = entity.spec.shape.width
-    fh_m = entity.spec.shape.height
-    fw_px = fw_m * pcs.pixels_per_meter
-    fh_px = fh_m * pcs.pixels_per_meter
-
-    # 半对角线作为安全半径
-    furn_radius_px = 0.5 * math.hypot(fw_px, fh_px)
-
-    # ========= 改写 is_state_valid =========
-
-    def is_state_valid(state: State) -> bool:
-        r, c, theta_deg = state
-        if not (0 <= r < h and 0 <= c < w):
-            return False
-
-        # dist[r, c] 表示这个点到最近障碍的像素距离
-        if dist[r, c] < furn_radius_px:
-            return False
-
-        # 如果你暂时只想看 BFS 能不能跑通，可以先不用 polygon 精确检查
-        # 真要严谨，可以在这里加一个“少量抽样点”的 polygon 碰撞，而不是整图扫描
-        return True
-
-    # --- 5. BFS ---
-    sx, sy = start.x, start.y
-    start_theta_deg = start.r % 360
-    sr, sc = pcs.world_to_pixel(sx, sy)
-
-    start_state: State = (sr, sc, int(start_theta_deg))
-
-    if not is_state_valid(start_state):
-        print("start_state is invalid")
-        return []
+    width, height = nav.pcs.canvas_size  # (width_px, height_px)
+    visited = np.zeros((height, width), dtype=bool)
+    parent: Dict[State, Optional[State]] = {}
 
     q: deque[State] = deque()
-    q.append(start_state)
-
-    visited = np.zeros((h, w, num_theta), dtype=bool)
-    visited[sr, sc, theta_to_idx(start_theta_deg)] = True
-
-    parent: Dict[State, Optional[State]] = {start_state: None}
-
-    move_dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-    found_goal: Optional[State] = None
+    q.append(start)
+    visited[sr, sc] = True
+    parent[start] = None
 
     while q:
-        state = q.popleft()
+        r, c = q.popleft()
+        cur: State = (r, c)
 
-        if is_goal_state(state):
-            found_goal = state
-            break
+        if cur == goal:
+            # 回溯路径
+            path: List[State] = []
+            node: Optional[State] = cur
+            while node is not None:
+                path.append(node)
+                node = parent[node]
+            path.reverse()
+            return path
 
-        r, c, theta_deg = state
-        theta_idx = theta_to_idx(theta_deg)
-
-        # 平移
-        for dr, dc in move_dirs:
+        for dr, dc in NEIGHBORS:
             nr, nc = r + dr, c + dc
-            ntheta_deg = theta_deg
-            ntheta_idx = theta_idx
-            next_state: State = (nr, nc, ntheta_deg)
+            if 0 <= nr < height and 0 <= nc < width and not visited[nr, nc]:
+                if nav.is_walkable(nr, nc):
+                    visited[nr, nc] = True
+                    parent[(nr, nc)] = cur
+                    q.append((nr, nc))
 
-            if (
-                0 <= nr < h
-                and 0 <= nc < w
-                and not visited[nr, nc, ntheta_idx]
-                and is_state_valid(next_state)
-            ):
-                visited[nr, nc, ntheta_idx] = True
-                parent[next_state] = state
-                q.append(next_state)
+    # 如果队列耗尽也没找到
+    return None
 
-        # 原地旋转
-        for d in (-1, 1):
-            ntheta_deg = (theta_deg + d * step_theta_deg) % 360
-            ntheta_idx = theta_to_idx(ntheta_deg)
-            next_state: State = (r, c, int(ntheta_deg))
-
-            if (
-                not visited[r, c, ntheta_idx]
-                and is_state_valid(next_state)
-            ):
-                visited[r, c, ntheta_idx] = True
-                parent[next_state] = state
-                q.append(next_state)
-
-    if found_goal is None:
-        return []
-
-    path_states: List[State] = []
-    cur: Optional[State] = found_goal
-    while cur is not None:
-        path_states.append(cur)
-        cur = parent[cur]
-
-    path_states.reverse()
-    global path_states_debug
-    path_states_debug = path_states
-
-    path_transforms: List[Transform] = [make_transform_from_state(s) for s in path_states]
-    return path_transforms
 
 if __name__ == "__main__":
-    furniture = layout_example_a.furnitures[0]
-    container = layout_example_a.room
-    obstacles: List[PlacedEntity] = []
+    room = room_example_a
+    furniture_list = [
+        # furniture_example_table,
+        # furniture_example_desk_round,
+        furniture_example_bed,
+        # furniture_example_wardrobe,
+    ]
 
-    start_t = Transform  # 假定 r 是角度
-    goal_t = furniture.transform.clone()
+    rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
+    room_w = rect.width
+    room_h = rect.height
 
+    pixels_per_meter = 100
     pcs = PixelCoordinateSystem(
-        pixels_per_meter=100,
-        canvas_size=(500, 500),      # 建议约定为 (height, width)
+        pixels_per_meter=pixels_per_meter,
+        canvas_size=(
+            int(np.ceil(room_w * pixels_per_meter)) + 40,
+            int(np.ceil(room_h * pixels_per_meter)) + 40,
+        ),
         center_world=(0.0, 0.0),
     )
 
-    path = find_path_bfs(
-        entity=furniture,
-        container=container,
-        obstacle_list=obstacles,
-        start=start_t,
-        goal=goal_t,
-        pcs=pcs,
-        step_theta=90.0,
+    agent = SimpleAgent(radius_m=0.3)
+
+    nav = PixelNavigationField(pcs).from_room_and_furniture_with_simple_agent(
+        room=room,
+        furniture_list=furniture_list,
+        agent=agent,
     )
 
-    # === Debug 图像 ===
-    # image_debug 此时应该是 (H, W) 的 uint8 灰度图
-    if image_debug is None:
-        raise RuntimeError("image_debug 还没被设置，检查 find_path_bfs 里的 global 代码")
-
-    # 扩成三通道
-    W,H = pcs.canvas_size
-    image = np.zeros((H, W, 3), dtype=np.uint8)
-    image[:] = image_debug[..., np.newaxis]  # broadcast 到 3 个通道
-
-    # 把 BFS 路径画出来（红色小点）
-    print("Debug BFS path steps:", len(path_states_debug))
-    for (r, c, theta_deg) in path_states_debug:
-        print(f"Path step: row={r}, col={c}, theta={theta_deg}")
-        cv.circle(image, (c, r), 2, (0, 0, 255), -1)
-
-    cv.imshow("Debug Pathfinding", image)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+    start = (250, 250)
+    goal = (220, 300)   # 随便先放一个不等于 start 的点
+    path = bfs_shortest_path(start, goal, nav)
+    print("Found path:", path)

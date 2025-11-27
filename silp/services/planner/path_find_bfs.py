@@ -122,6 +122,7 @@ def find_path_bfs(
 
         return True
 
+
     # ======== 5. BFS 搜索 ========
 
     sx, sy = start.x, start.y
@@ -254,3 +255,11 @@ if __name__ == "__main__":
     cv.imshow("Debug Pathfinding", image)
     cv.waitKey(0)
     cv.destroyAllWindows()
+
+
+# ======4.1 ==========
+
+def is_state_valid_EDT(state:State,pcs:PixelCoordinateSystem)->bool:
+        r, c, theta_deg = state   
+        if not (0 <= r < h and 0 <= c < w):
+            return False  
