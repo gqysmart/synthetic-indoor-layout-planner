@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SILP Debug Home</title>
+    <link rel="stylesheet" href="{{ url_for('public', path='css/debug_home.css') }}">
+    <style>
+    </style>
+</head>
+<body>
+    <main>
+        <h1>SILP Debug Home</h1>
+        {% for item in worked_items %}
+        <section>
+            <h2>work_id:<code>{{ item.work_id }}</code></h2>
+            <details>
+                <summary>Details</summary>
+                <pre>{{ readme_contents[item.work_id] | e }}</pre>
+            </details>
+        </section>
+        {% endfor %}
+
+        <p>{{ debug_text }}</p>
+    </main>
+</body>
+</html> 
