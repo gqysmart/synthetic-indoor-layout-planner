@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from silp.api.routers import debug
 from silp.api.routers import debug_home
+from silp.api.routers import room_plan
 
 
 PUBLIC_DIR = Path(__file__).parent / "public"
@@ -16,6 +17,7 @@ web_title = "Synthetic indoor layout planner"
 app = FastAPI(title=web_title)
 app.include_router(debug.router)
 app.include_router(debug_home.router)
+app.include_router(room_plan.router)
 
 app.mount("/public", StaticFiles(directory=PUBLIC_DIR), name="public")  
 

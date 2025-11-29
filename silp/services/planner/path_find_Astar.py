@@ -3,6 +3,8 @@ from typing import Dict, Optional, Tuple, List
 import heapq
 import math
 
+from silp.lib.debug.debug import Debug
+
 import numpy as np
 
 from silp.core.geometry.coorinate_system import PixelCoordinateSystem
@@ -36,6 +38,7 @@ def astar_shortest_path(
     start: State,
     goal: State,
     nav: PixelNavigationField,
+    debug: Optional[Debug] = None,
 ) -> Optional[List[State]]:
     """
     在 nav.walkable_mask 上用 A* 寻找从 start 到 goal 的最短路径。
@@ -49,6 +52,9 @@ def astar_shortest_path(
     - 如果有路径，返回状态列表 [ (r0,c0), (r1,c1), ... ]
     - 如果无路径，返回 None
     """
+    if debug is not None:
+        nav.set_debug(debug)
+
     sr, sc = start
     gr, gc = goal
 

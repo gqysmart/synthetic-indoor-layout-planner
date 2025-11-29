@@ -6,8 +6,58 @@ import { Grid, OrbitControls } from "@react-three/drei"
 import { FurnitureModel3D, WardrobeModel3D, DeskModel3D } from "@/components/3Dmodels/furniture3D"
 import { Transform } from "@/lib/types/transform"
 import { Character } from "@/components/3Dmodels/character"
+import { useMemo, useState, memo, useEffect } from "react"
+import { usePlannerSocket } from "@/hooks/usePlannerSocket"
+import { start } from "repl"
+
+type Room = string | null;
+type Furniture = string;
+type Algorithm = string | null;
+
 
 export default function RoomLayoutPage() {
+    const [room, setRoom] = useState<Room>("beadroom");
+    const [furnitures, setFurnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
+    const [algorithm, setAlgorithm] = useState("csp");
+
+    const [jobId, setJobId] = useState<string | null>(null);
+
+    const jobHost = "synthetic-indoor-layout-planner.onrender.com";
+    const jobId_endpoint = "https://" + jobHost + "/plan/jobs/";
+    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket(jobHost, (msg) => {
+        console.log("Received message from planner WS:", msg);
+        // 这里根据消息类型处理不同的逻辑
+        if (msg.type === "layout_update") {
+            // 处理布局更新 
+            console.log("Layout update received:", msg.payload);
+        } else if (msg.type === "error") {
+            console.error("Error from planner:", msg.payload);
+        }
+    });
+
+    useEffect(() => {
+        // Example: Fetch a new job ID from the server when the component mounts
+        async function fetchJobId() {
+            // Replace with your actual API call
+            const response = await fetch(jobId_endpoint, { method: 'POST' });
+            const data = await response.json();
+            if (!data.job_id) {
+                console.error("Invalid response:", data);
+            } else {
+                setJobId(data.job_id);
+
+            }
+        }
+        fetchJobId();
+    }, []);
+
+
+
+    const roomContext: RoomLayoutContext = useMemo(() => ({
+        room,
+        furnitures,
+        algorithm,
+    }), [room, furnitures, algorithm]);
 
     return (
         <main className="h-screen bg-slate-50 flex flex-col">
@@ -17,6 +67,7 @@ export default function RoomLayoutPage() {
                     <Link href="/">Home</Link>
                 </nav>
             </header>
+
 
             <section className="flex-1 flex">
                 <aside className="w-64 border-r p-4 overflow-y-auto">
@@ -66,8 +117,17 @@ export default function RoomLayoutPage() {
                      px-4 py-2 border-b bg-white/70 backdrop-blur">
                         3D Viewport
                     </h2>
+                    <section>
+                        <p>Job ID: {jobId}</p>
+                        <button onClick={() => {
+                            if (jobId) {
+                                startSocket(jobId);
+                                sendCommand({ type: "subscribe" });
+                            }
+                        }}>Find the way</button>
+                    </section>
                     <Canvas shadows dpr={[1, 2]} camera={{ position: [5, 5, 5], fov: 50 }} className="flex-1 bg-white" >
-                        <LayoutScene algorithm="hybrid" />
+                        <LayoutScene context={roomContext} />
                     </Canvas>
                 </section>
             </section>
@@ -78,14 +138,17 @@ export default function RoomLayoutPage() {
     )
 
 }
-type Algorithm = "bfs" | "csp" | "hybrid";
-function LayoutScene({ algorithm = "csp" }: { algorithm?: Algorithm }) {
-    const roomColor =
-        algorithm === "csp"
-            ? "#6b7280" // slate-500
-            : algorithm === "bfs"
-                ? "#0f766e" // teal-700
-                : "#7c3aed"; // violet-600
+
+type RoomLayoutContext = {
+    room: Room,
+    furnitures: Furniture[],
+    algorithm: Algorithm | null,
+
+}
+
+const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
+    const { room, furnitures, algorithm } = context;
+
 
     return (
         <>
@@ -121,14 +184,11 @@ function LayoutScene({ algorithm = "csp" }: { algorithm?: Algorithm }) {
                 <meshStandardMaterial color="#a78bfa" transparent opacity={0.5} />
                 <meshBasicMaterial color="#5b21b6" wireframe />
             </mesh> */}
-            <FurnitureModel3D
-                name="bed"
-            />
-            <FurnitureModel3D
-                name="desk"
-            />
-            <FurnitureModel3D name="wardrobe" />
-
+            {
+                furnitures.map((fname, idx) =>
+                    <FurnitureModel3D key={idx} name={fname} />
+                )
+            }
 
             <Character />
 
@@ -153,5 +213,5 @@ function LayoutScene({ algorithm = "csp" }: { algorithm?: Algorithm }) {
             <fog attach="fog" args={["#ffffff", 20, 120]} />
         </>
     )
-}
+})
 

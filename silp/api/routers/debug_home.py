@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Request
 from pathlib import Path
 
+from silp.lib.debug.debug import Debug_based_work_id
+
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -9,6 +11,7 @@ router = APIRouter(prefix="/debug", tags=["debug_home"])
 THIS_DIR = Path (__file__).resolve()
 TEMPLATE_DIR = THIS_DIR.parent.parent / "templates"
 DEBUG_ROOT = Path("debug")
+debug = Debug_based_work_id(save_dir=str(DEBUG_ROOT))
 
 template = Jinja2Templates(directory=str(TEMPLATE_DIR))
 

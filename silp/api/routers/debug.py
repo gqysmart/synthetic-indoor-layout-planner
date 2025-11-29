@@ -3,6 +3,8 @@ from pathlib import Path
 
 from fastapi.responses import FileResponse
 
+from silp.lib.debug.debug import Debug_based_work_id
+
 router = APIRouter(
     prefix="/debug", tags=["debug"])
 

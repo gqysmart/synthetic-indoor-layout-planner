@@ -5,6 +5,7 @@ import cv2 as cv
 
 from silp.core.geometry.coorinate_system import PixelCoordinateSystem
 from silp.core.geometry.placed_entity import PlacedEntity
+from silp.lib.debug.debug import Debug
 
 
 class MaskValue:
@@ -12,9 +13,12 @@ class MaskValue:
     mask_value_obstacle = 10
     mask_value_furniture = 1
 
+@dataclass
+class Agent:
+    pass
 
 @dataclass
-class SimpleAgent:
+class SimpleAgent(Agent):
     radius_m: float
     extra_clearance_m: float = 0.0
 
@@ -34,6 +38,8 @@ class PixelNavigationField:
     walkable_mask: Optional[np.ndarray] = field(default=None, init=False)         # bool
 
     mask_value: MaskValue = field(default_factory=MaskValue)
+
+    debug: Optional[Debug] = None
 
     # ---------- 查询接口 ----------
 
@@ -94,6 +100,9 @@ class PixelNavigationField:
         # 保存到 self
         self.container_mask = container_mask
         self.obstacle_mask = obstacle_mask
+        if self.debug is not None:
+            self.debug.save_image(
+                self.obstacle_mask, "obstacle")
 
         # 3) 如果给了 agent，顺便构建 walkable_mask
         if agent is not None:
@@ -127,6 +136,10 @@ class PixelNavigationField:
             maskSize=cv.DIST_MASK_PRECISE,
         )
         self.distance_to_obstacles = dist
+        if self.debug is not None:
+            self.debug.save_image(
+                self.distance_to_obstacles, "edt")
+
 
         # 在房间内，且距离障碍 ≥ px_req 的位置是 walkable
         walkable = (
@@ -136,6 +149,10 @@ class PixelNavigationField:
         self.walkable_mask = walkable
 
     # ---------- 调试可视化 ----------
+
+    def set_debug(self, debug: Debug) -> "PixelNavigationField":
+        self.debug = debug
+        return self
 
     def to_debug_bgr(self) -> np.ndarray:
         if self.container_mask is None or self.obstacle_mask is None:

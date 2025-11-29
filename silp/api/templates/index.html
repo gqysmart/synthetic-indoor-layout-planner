@@ -107,7 +107,7 @@
           formData.append("roomFile", roomFile);
         }
 
-        const response = await fetch("/jobs", {
+        const response = await fetch("/plan/jobs", {
           method: "POST",
           body: formData,
         });
@@ -132,7 +132,10 @@
         }
 
         const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-        socket = new WebSocket(`${protocol}://${window.location.host}/ws/jobs/${job_id}`);
+        // socket = new WebSocket(`${protocol}://${window.location.host}/ws/jobs/${job_id}`);
+        socket = new WebSocket(`${protocol}://${window.location.host}/plan/ws/jobs/01`);
+
+        //test
 
         socket.addEventListener("open", () => {
           socket.send(JSON.stringify({ type: "subscribe" }));
@@ -146,6 +149,11 @@
             roomSummary.textContent = data.summary;
             roomSummary.style.display = "block";
             appendLog("Received room summary.");
+            return;
+          }
+          if (data.type === "status" && data.message) {
+           
+            appendLog("Status: " + data.message);
             return;
           }
           if (data.type === "room_image" && data.data_url) {

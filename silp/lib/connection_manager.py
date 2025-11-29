@@ -18,13 +18,7 @@ class ConnectionManager:
     async def connect(self, job_id: str, websocket: WebSocket) -> None:
         await websocket.accept()
         self.connections[job_id].add(websocket)
-        if self.backlog.get(job_id):
-            for message in list(self.backlog[job_id]):
-                try:
-                    await websocket.send_json(message)
-                except Exception:
-                    break
-            self.backlog.pop(job_id, None)
+      
 
     def disconnect(self, job_id: str, websocket: WebSocket) -> None:
         group = self.connections.get(job_id)
@@ -37,9 +31,6 @@ class ConnectionManager:
     async def broadcast(self, job_id: str, message: dict) -> None:
         """Send JSON payloads to every listener on the given job id."""
         targets = list(self.connections.get(job_id, []))
-        if not targets:
-            self.backlog[job_id].append(message)
-            return
         for websocket in targets:
             try:
                 await websocket.send_json(message)

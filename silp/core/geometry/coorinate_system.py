@@ -109,6 +109,19 @@ class PixelCoordinateSystem:
         col = int(round((x - wx0) * self.pixels_per_meter))
         row = int(round((y - wy0) * self.pixels_per_meter))
         return  row, col
+    
+    def worlds_to_pixels(self, world_pts: List[Tuple[float, float]]) -> List[Tuple[int, int]]:
+        """
+        世界坐标列表 (x, y in meters) -> 像素坐标列表 (col, row)
+        col 对应图像的 x（宽方向），row 对应图像的 y（高方向）
+        """
+        return [self.world_to_pixel(x, y) for (x, y) in world_pts]
+    
+    def pixels_to_worlds(self, pixel_pts: List[Tuple[int, int]]) -> List[Tuple[float, float]]:
+        """
+        像素坐标列表 (col, row) -> 世界坐标列表 (x, y in meters)
+        """
+        return [self.pixel_to_world(col, row) for (row, col) in pixel_pts]
 
     def pixel_to_world(self, col: int, row: int) -> Tuple[float, float]:
         """

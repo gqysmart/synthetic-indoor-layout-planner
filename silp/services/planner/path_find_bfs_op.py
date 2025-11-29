@@ -5,9 +5,12 @@ import numpy as np
 
 from silp.core.geometry.coorinate_system import PixelCoordinateSystem
 from silp.core.geometry.shape import Rectangle
+from silp.domain.room import Room
+from silp.lib.debug.debug import Debug
 from silp.services.planner.navigation_field import PixelNavigationField, SimpleAgent
 from silp.domain.layout import room_example_a
 from silp.domain.furniture import (
+    Furniture,
     furniture_example_table,
     furniture_example_desk_round,
     furniture_example_bed,
@@ -22,6 +25,7 @@ def bfs_shortest_path(
     start: State,
     goal: State,
     nav: PixelNavigationField,
+    debug: Optional[Debug] = None,
 ) -> Optional[List[State]]:
     """
     使用广度优先搜索（BFS）算法在网格中找到从起点到终点的最短路径。
@@ -31,6 +35,9 @@ def bfs_shortest_path(
     - goal: 目标状态 (row, col)
     - nav: PixelNavigationField 对象，提供网格信息和障碍物检测功能。
     """
+    if debug is not None:
+        nav.set_debug(debug)
+
     sr, sc = start
     gr, gc = goal
 
@@ -72,39 +79,3 @@ def bfs_shortest_path(
     # 如果队列耗尽也没找到
     return None
 
-
-if __name__ == "__main__":
-    room = room_example_a
-    furniture_list = [
-        # furniture_example_table,
-        # furniture_example_desk_round,
-        furniture_example_bed,
-        # furniture_example_wardrobe,
-    ]
-
-    rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
-    room_w = rect.width
-    room_h = rect.height
-
-    pixels_per_meter = 100
-    pcs = PixelCoordinateSystem(
-        pixels_per_meter=pixels_per_meter,
-        canvas_size=(
-            int(np.ceil(room_w * pixels_per_meter)) + 40,
-            int(np.ceil(room_h * pixels_per_meter)) + 40,
-        ),
-        center_world=(0.0, 0.0),
-    )
-
-    agent = SimpleAgent(radius_m=0.3)
-
-    nav = PixelNavigationField(pcs).from_room_and_furniture_with_simple_agent(
-        room=room,
-        furniture_list=furniture_list,
-        agent=agent,
-    )
-
-    start = (250, 250)
-    goal = (220, 300)   # 随便先放一个不等于 start 的点
-    path = bfs_shortest_path(start, goal, nav)
-    print("Found path:", path)
