@@ -18,8 +18,9 @@ type PlannerMessage = {
     type: string;
     payload?: unknown;
 };
+import { WsIncomingMessage } from "@/lib/types/websocketMessage";
 
-export function usePlannerSocket(onMessage?: (msg: PlannerMessage) => void) {
+export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
     const wsRef = useRef<WebSocket | null>(null);
     const wsUrlRef = useRef<string | null>(null);
     const [status, setStatus] = useState<PlannerStatus>("idle");
@@ -68,7 +69,7 @@ export function usePlannerSocket(onMessage?: (msg: PlannerMessage) => void) {
                 setStatus("error");
             };
         },
-        [onMessage]
+        []
     );
 
     const sendCommand = useCallback((message: PlannerMessage) => {

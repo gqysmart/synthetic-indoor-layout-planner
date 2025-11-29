@@ -15,7 +15,7 @@ from silp.domain.furniture import (
 from silp.services.planner.path_find_bfs_op import bfs_shortest_path
 from silp.services.planner_core_simplified.model_simplified import Room   
 
-def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furniture]]=None, method:str="Astar", agent:Optional[Agent]=None, debug:Debug=None) -> list[float,float]:
+def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furniture]]=None, method:str|None=None, agent:Optional[Agent]=None, debug:Debug=None) -> list[float,float]:
     """BFS 寻路示例。"""
     # 构建导航场
     if room is None:    
@@ -50,11 +50,12 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         room=room,
         furniture_list=furniture_list,
         agent=agent,
-        debug=debug,
     )
 
     start = (250, 250)
     goal = (220, 300)   # 随便先放一个不等于 start 的点
+    method = method if method is not None else "Astar"
+    path = []
     if method=="Astar":
         from silp.services.planner.path_find_Astar import astar_shortest_path
         path = astar_shortest_path(start, goal, nav) 
@@ -64,3 +65,8 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
     if path is not None:
        return pcs.pixels_to_worlds(path)
     return []
+
+if __name__ == "__main__":
+    
+    path = room_path_find()
+    print("path:", path)

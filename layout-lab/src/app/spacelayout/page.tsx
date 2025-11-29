@@ -8,9 +8,8 @@ import { Transform } from "@/lib/types/transform"
 import { Character } from "@/components/3Dmodels/character"
 import { useMemo, useState, memo, useEffect } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
-import { start } from "repl"
-import { getPlannerWsUrl } from "@/lib/wbsocket/url"
-import { get } from "http"
+
+import { WsIncomingMessage, WsMessageBase } from "@/lib/types/websocketMessage"
 
 type Room = string | null;
 type Furniture = string;
@@ -23,16 +22,22 @@ export default function RoomLayoutPage() {
     const [algorithm, setAlgorithm] = useState("csp");
 
     const [wsUrl, setWsUrl] = useState<string | null>(null);
+    const [path, setPath] = useState<[number, number][] | null>([]);
 
     const url_for_jobId = "/api/plan/jobs";
-    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket((msg) => {
-        console.log("Received message from planner WS:", msg);
+    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket((msg: WsIncomingMessage) => {
         // 这里根据消息类型处理不同的逻辑
         if (msg.type === "status") {
-            // 处理布局更新 
-            console.log("Layout update received:", msg.payload);
+            console.log("Websocket Status update:", msg.payload?.message);
+
         } else if (msg.type === "error") {
-            console.error("Error from planner:", msg.payload);
+            console.error("Error from websocket server:", msg.payload?.message);
+        }
+        else if (msg.type === "path_response") {
+            if (msg.payload?.command === "start_path_finding") {
+                setPath(msg.payload.path);
+            }
+            console.log("Response from websocket server:", msg.payload);
         }
     });
 
@@ -63,7 +68,8 @@ export default function RoomLayoutPage() {
         room,
         furnitures,
         algorithm,
-    }), [room, furnitures, algorithm]);
+        path,
+    }), [path, room, furnitures, algorithm]);
 
     return (
         <main className="h-screen bg-slate-50 flex flex-col">
@@ -128,7 +134,7 @@ export default function RoomLayoutPage() {
                         <button className="w-full bg-green-600 text-white rounded p-2" onClick={() => {
                             if (wsUrl) {
 
-                                sendCommand({ type: "status", payload: { message: "Find the way clicked" } });
+                                sendCommand({ type: "command", payload: { command: "start_path_finding", room, furnitures, algorithm } });
                             }
                         }}>Find the way</button>
                     </section>
@@ -146,6 +152,7 @@ export default function RoomLayoutPage() {
 }
 
 type RoomLayoutContext = {
+    path: [number, number][] | null,
     room: Room,
     furnitures: Furniture[],
     algorithm: Algorithm | null,
@@ -153,7 +160,8 @@ type RoomLayoutContext = {
 }
 
 const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
-    const { room, furnitures, algorithm } = context;
+    const { room, furnitures, algorithm, path } = context;
+
 
 
     return (
@@ -196,7 +204,7 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 )
             }
 
-            <Character />
+            <Character path={context.path} />
 
 
             <Grid

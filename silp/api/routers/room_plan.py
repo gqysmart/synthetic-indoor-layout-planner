@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from unittest import case
 import uuid
 from pathlib import Path
 
@@ -56,6 +57,7 @@ async def create_job(
 async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
     """Relay planner progress via WebSocket."""
     debug: Debug = Debug_based_work_id(save_dir=str(DEBUG_ROOT), work_id=job_id)
+    print(f"WebSocket connection requested for job {job_id}.")
     await manager.connect(job_id, websocket)
     try:
         await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Connected to job {job_id}."}})
@@ -67,20 +69,32 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                 await websocket.send_json({"type": "error", "payload":{"message": "Invalid JSON payload."}})
                 continue
 
-            if message.get("type") == "command" and message.get("payload") == "room_path_finding":
-                # room = message.get("room") 
-                # furniture_list = message.get("furniture_list")
-                # method = message.get("method","Astar")
-                room = None 
-                furniture_list = None
-                agent = None
-                method = message.get("method","Astar")
-                
-                path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
-                path = _serialize_path(path)
-                await manager.broadcast(job_id, {"type": "path", "payload":{"path": path}})
+            if message.get("type") == "command" :
+                payload = message.get("payload", {})
+                command = payload.get("command") 
+                print("Command received:", command)
+                await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Received command '{command}'  for job {job_id}."}})
 
-                continue
+                match command:
+                    case "start_path_finding":
+                        # room = payload.get("room", None)
+                        # furniture_list = payload.get("furnitures", None)
+                        # method = payload.get("algorithm","Astar")
+                        # agent = payload.get("agent", None)
+                        print("Starting path finding...")
+                        room = None
+                        furniture_list = None
+                        method = None
+                        agent = None
+                        path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
+                        path = _serialize_path(path)
+                        await manager.broadcast(job_id, {"type": "path_response", "payload":{"command":"start_path_finding", "path": path}})
+                        if len(path) == 0:
+                            print("No path found.")
+                        else:   
+                            print("Path finding completed.")
+                    case _:
+                        pass
 
             elif message.get("type") == "subscribe" :
                 await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Subscribed to job {job_id}."}})
@@ -94,7 +108,7 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
            
 
     except WebSocketDisconnect:
-        await manager.broadcast(job_id, {"type": "status", "message": f"Disconnected from job {job_id}."})
+        await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Disconnected from job {job_id}."} })
         manager.disconnect(job_id, websocket)
 
 
