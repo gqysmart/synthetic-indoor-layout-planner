@@ -2,6 +2,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { getPlannerWsUrl } from "@/lib/wbsocket/url";
+import { get } from "http";
 
 export type PlannerStatus = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -17,17 +19,18 @@ type PlannerMessage = {
     payload?: unknown;
 };
 
-export function usePlannerSocket(url_server: string, onMessage?: (msg: PlannerMessage) => void) {
+export function usePlannerSocket(onMessage?: (msg: PlannerMessage) => void) {
     const wsRef = useRef<WebSocket | null>(null);
-    const jobidRef = useRef<string | null>(null);
+    const wsUrlRef = useRef<string | null>(null);
     const [status, setStatus] = useState<PlannerStatus>("idle");
 
     const startSocket = useCallback(
-        (jobId: string) => {
+        (ws_url: string) => {
             // 已经有连接就先关掉
 
+
             // const url = `${process.env.NEXT_PUBLIC_PLANNER_WS_URL ?? "ws://localhost:8000"}/ws/planner/${jobId}`;
-            if (jobId === jobidRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            if (ws_url === wsUrlRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
                 return; // 避免重复连接
             }
 
@@ -35,9 +38,8 @@ export function usePlannerSocket(url_server: string, onMessage?: (msg: PlannerMe
                 wsRef.current.close();
             }
 
-            jobidRef.current = jobId;
-            const url = `wss://${url_server}/planner/ws/${jobId}`;
-            const ws = new WebSocket(url);
+            wsUrlRef.current = ws_url;
+            const ws = new WebSocket(ws_url);
 
             wsRef.current = ws;
             setStatus("connecting");
@@ -66,7 +68,7 @@ export function usePlannerSocket(url_server: string, onMessage?: (msg: PlannerMe
                 setStatus("error");
             };
         },
-        [onMessage, url_server]
+        [onMessage]
     );
 
     const sendCommand = useCallback((message: PlannerMessage) => {

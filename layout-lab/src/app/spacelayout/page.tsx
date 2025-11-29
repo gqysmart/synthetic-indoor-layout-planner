@@ -9,6 +9,8 @@ import { Character } from "@/components/3Dmodels/character"
 import { useMemo, useState, memo, useEffect } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 import { start } from "repl"
+import { getPlannerWsUrl } from "@/lib/wbsocket/url"
+import { get } from "http"
 
 type Room = string | null;
 type Furniture = string;
@@ -20,14 +22,13 @@ export default function RoomLayoutPage() {
     const [furnitures, setFurnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
     const [algorithm, setAlgorithm] = useState("csp");
 
-    const [jobId, setJobId] = useState<string | null>(null);
+    const [wsUrl, setWsUrl] = useState<string | null>(null);
 
-    const jobHost = "synthetic-indoor-layout-planner.onrender.com";
-    const jobId_endpoint = "https://" + jobHost + "/plan/jobs/";
-    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket(jobHost, (msg) => {
+    const url_for_jobId = "/api/plan/jobs";
+    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket((msg) => {
         console.log("Received message from planner WS:", msg);
         // 这里根据消息类型处理不同的逻辑
-        if (msg.type === "layout_update") {
+        if (msg.type === "status") {
             // 处理布局更新 
             console.log("Layout update received:", msg.payload);
         } else if (msg.type === "error") {
@@ -37,19 +38,24 @@ export default function RoomLayoutPage() {
 
     useEffect(() => {
         // Example: Fetch a new job ID from the server when the component mounts
-        async function fetchJobId() {
+        async function fetchWS() {
             // Replace with your actual API call
-            const response = await fetch(jobId_endpoint, { method: 'POST' });
+            const response = await fetch(url_for_jobId, { method: 'POST' });
             const data = await response.json();
-            if (!data.job_id) {
+            if (!data.server_url) {
                 console.error("Invalid response:", data);
             } else {
-                setJobId(data.job_id);
+                setWsUrl(data.server_url);
 
             }
         }
-        fetchJobId();
+        fetchWS();
     }, []);
+
+    useEffect(() => {
+        if (!wsUrl) return;
+        startSocket(wsUrl);
+    }, [wsUrl, startSocket]);
 
 
 
@@ -118,11 +124,11 @@ export default function RoomLayoutPage() {
                         3D Viewport
                     </h2>
                     <section>
-                        <p>Job ID: {jobId}</p>
-                        <button onClick={() => {
-                            if (jobId) {
-                                startSocket(jobId);
-                                sendCommand({ type: "subscribe" });
+                        <p>wsUrl: {wsUrl}</p>
+                        <button className="w-full bg-green-600 text-white rounded p-2" onClick={() => {
+                            if (wsUrl) {
+
+                                sendCommand({ type: "status", payload: { message: "Find the way clicked" } });
                             }
                         }}>Find the way</button>
                     </section>

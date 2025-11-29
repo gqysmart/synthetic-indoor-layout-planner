@@ -58,16 +58,16 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
     debug: Debug = Debug_based_work_id(save_dir=str(DEBUG_ROOT), work_id=job_id)
     await manager.connect(job_id, websocket)
     try:
-        await manager.broadcast(job_id, {"type": "status", "message": f"Connected to job {job_id}."})
+        await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Connected to job {job_id}."}})
         while True:
             raw_message = await websocket.receive_text()
             try:
                 message = json.loads(raw_message)
             except json.JSONDecodeError:
-                await websocket.send_json({"type": "error", "message": "Invalid JSON payload."})
+                await websocket.send_json({"type": "error", "payload":{"message": "Invalid JSON payload."}})
                 continue
 
-            if message.get("type") == "command" and message.get("command") == "room_path_finding":
+            if message.get("type") == "command" and message.get("payload") == "room_path_finding":
                 # room = message.get("room") 
                 # furniture_list = message.get("furniture_list")
                 # method = message.get("method","Astar")
@@ -78,12 +78,16 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                 
                 path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
                 path = _serialize_path(path)
-                await manager.broadcast(job_id, {"type": "path", "path": path})
+                await manager.broadcast(job_id, {"type": "path", "payload":{"path": path}})
 
                 continue
 
             elif message.get("type") == "subscribe" :
-                await manager.broadcast(job_id, {"type": "status", "message": f"Subscribed to job {job_id}."})
+                await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Subscribed to job {job_id}."}})
+                continue
+            elif message.get("type") == "status":
+                print("Status command received:", message.get("payload"))
+                await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Status command received for job {job_id}."}})
                 continue
             
                 
