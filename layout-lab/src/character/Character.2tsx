@@ -1,0 +1,59 @@
+// app/character/Character.tsx
+'use client'
+
+import { useRef, useLayoutEffect } from 'react'
+import { Group, Box3, Vector3 } from 'three'
+import { useGLTF } from '@react-three/drei'
+import type { CharacterProps } from './types'
+import { usePathFollower } from './usePathFollower'
+import { useKeyboardController } from './useKeyboardController'
+import { useCharacterAnimator } from './useAnimator'
+import { useNormalizer } from './useNormalizer'
+
+export function Character({
+    path = [],
+    initialPosition = [0, 0],
+    segmentDuration = 0.5,
+    speed = 1,
+    mode = 'path',
+    modelUrl = '/models/personaje_rs.glb',
+}: CharacterProps) {
+    const groupRef = useRef<Group | null>(null)
+
+    const { scene, animations } = useGLTF(modelUrl)
+
+    // 动画 + 阴影
+    useCharacterAnimator(scene, animations, groupRef)
+
+    // 归一化身高 + 贴地
+    useNormalizer(groupRef, 0.8)
+
+    const pathFollowerEnabled = mode === 'path' || mode === 'mixed'
+    const keyboardEnabled = mode === 'manual' || mode === 'mixed'
+
+    // 路径跟随
+    // usePathFollower(groupRef, path, {
+    //     enabled: pathFollowerEnabled,
+    //     segmentDuration,
+    // })
+
+    // 键盘控制
+    useKeyboardController(groupRef, {
+        enabled: keyboardEnabled,
+        speed,
+    })
+
+    // 没有路径时，如果 mode 是纯 path，可以选择不渲染
+    if (mode === 'path' && (!path || path.length === 0)) {
+        return null
+    }
+
+    return (
+        <group ref={groupRef}>
+            <primitive object={scene} />
+        </group>
+    )
+}
+
+// 预加载
+useGLTF.preload('/models/personaje_rs.glb')

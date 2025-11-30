@@ -10,6 +10,7 @@ import { useMemo, useState, memo, useEffect } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
 import { WsIncomingMessage, WsMessageBase } from "@/lib/types/websocketMessage"
+import pathRandom from "./testPath"
 
 type Room = string | null;
 type Furniture = string;
@@ -68,8 +69,9 @@ export default function RoomLayoutPage() {
         room,
         furnitures,
         algorithm,
-        path,
-    }), [path, room, furnitures, algorithm]);
+        // path,
+        path: pathRandom,
+    }), [pathRandom, room, furnitures, algorithm]);
 
     return (
         <main className="h-screen bg-slate-50 flex flex-col">
@@ -204,7 +206,7 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 )
             }
 
-            <Character path={context.path} />
+            <Character path={path} />
 
 
             <Grid
