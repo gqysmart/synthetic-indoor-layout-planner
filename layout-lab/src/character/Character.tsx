@@ -19,7 +19,7 @@ export function Character({
     const groupRef = useRef<Group>(null)
 
     // 1) useGLTF 是 Suspense hook，本身就会“延迟”渲染
-    const { scene, animations } = useGLTF('/models/personaje_rs.glb') as any
+    const { scene, animations } = useGLTF('/models/personaje_rs.glb')
 
     // 2) 无论如何，每次 render 都调用 useAnimations
 

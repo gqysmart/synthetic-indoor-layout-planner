@@ -13,11 +13,11 @@ export type RoomLayoutContext = {
     algorithm: string | null;
 };
 
-type PlannerMessage = {
-    // 根据你后端的返回结构改
-    type: string;
-    payload?: unknown;
-};
+// type PlannerMessage = {
+//     // 根据你后端的返回结构改
+//     type: string;
+//     payload?: unknown;
+// };
 import { WsIncomingMessage } from "@/lib/types/websocketMessage";
 
 export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
@@ -54,7 +54,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
 
             ws.onmessage = (event) => {
                 try {
-                    const data = JSON.parse(event.data) as PlannerMessage;
+                    const data = JSON.parse(event.data) as WsIncomingMessage;
                     onMessage?.(data);
                 } catch (e) {
                     console.warn("planner ws invalid message", event.data);
@@ -72,7 +72,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
         []
     );
 
-    const sendCommand = useCallback((message: PlannerMessage) => {
+    const sendCommand = useCallback((message: WsIncomingMessage) => {
         const ws = wsRef.current;
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             console.warn("planner ws not open, cannot send", message);

@@ -15,7 +15,18 @@ export type WsPathResponseMessage = WsMessageBase<
   }
 >;
 
+
+  export type WsCommandMessage = WsMessageBase<
+  "command",
+  {
+    command:string;
+    room?: string |null;
+    furnitures?: string[] |null;
+    algorithm?: string | null;
+  }
+>;
 export type WsIncomingMessage =
   | WsStatusMessage
+  | WsCommandMessage
   | WsErrorMessage
   | WsPathResponseMessage;

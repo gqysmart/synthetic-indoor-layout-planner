@@ -1,11 +1,11 @@
 // app/character/useAnimator.ts
 import { Ref, RefObject, useEffect } from 'react'
-import { Group, LoopRepeat, Mesh, Object3D } from 'three'
+import { AnimationClip, Group, LoopRepeat, Mesh, Object3D } from 'three'
 import { useAnimations } from '@react-three/drei'
 
 export function useCharacterAnimator(
   scene: Group|null,
-  animations: any[],
+  animations: AnimationClip[],
   groupRef: RefObject<Group | null>,
 ) {
   console.log("useCharacterAnimator called");
