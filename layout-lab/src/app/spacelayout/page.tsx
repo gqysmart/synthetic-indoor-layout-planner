@@ -3,14 +3,12 @@
 import { Canvas } from "@react-three/fiber"
 import Link from "next/link"
 import { Grid, OrbitControls } from "@react-three/drei"
-import { FurnitureModel3D, WardrobeModel3D, DeskModel3D } from "@/components/3Dmodels/furniture3D"
-import { Transform } from "@/lib/types/transform"
+import { FurnitureModel3D } from "@/components/3Dmodels/furniture3D"
 import { Character } from "@/components/3Dmodels/character"
 import { useMemo, useState, memo, useEffect } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
-import { WsIncomingMessage, WsMessageBase } from "@/lib/types/websocketMessage"
-import pathRandom from "./testPath"
+import { WsIncomingMessage } from "@/lib/types/websocketMessage"
 
 type Room = string | null;
 type Furniture = string;
@@ -18,15 +16,15 @@ type Algorithm = string | null;
 
 
 export default function RoomLayoutPage() {
-    const [room, setRoom] = useState<Room>("beadroom");
-    const [furnitures, setFurnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
-    const [algorithm, setAlgorithm] = useState("csp");
+    const [room] = useState<Room>("beadroom");
+    const [furnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
+    const [algorithm] = useState("csp");
 
     const [wsUrl, setWsUrl] = useState<string | null>(null);
     const [path, setPath] = useState<[number, number][] | null>([]);
 
     const url_for_jobId = "/api/plan/jobs";
-    const { status, startSocket, sendCommand, stopSocket } = usePlannerSocket((msg: WsIncomingMessage) => {
+    const { startSocket, sendCommand } = usePlannerSocket((msg: WsIncomingMessage) => {
         // 这里根据消息类型处理不同的逻辑
         if (msg.type === "status") {
             console.log("Websocket Status update:", msg.payload?.message);
@@ -69,9 +67,8 @@ export default function RoomLayoutPage() {
         room,
         furnitures,
         algorithm,
-        // path,
-        path: pathRandom,
-    }), [pathRandom, room, furnitures, algorithm]);
+        path,
+    }), [room, furnitures, algorithm, path]);
 
     return (
         <main className="h-screen bg-slate-50 flex flex-col">
@@ -162,7 +159,7 @@ type RoomLayoutContext = {
 }
 
 const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
-    const { room, furnitures, algorithm, path } = context;
+    const { furnitures, path } = context;
 
 
 
@@ -230,4 +227,3 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
         </>
     )
 })
-

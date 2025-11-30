@@ -67,7 +67,6 @@ export function usePathFollower(
 
     // 3. 插值移动
     vPos.lerpVectors(vFrom, vTo, t)
-    console.log
     group.position.copy(vPos)
 
     // 4. 朝向（防止 0 向量导致 NaN）

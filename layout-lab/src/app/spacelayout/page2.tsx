@@ -79,7 +79,10 @@ type LayoutSceneProps = {
 };
 
 function LayoutScene({ algorithm, roomId, furnitureIds }: LayoutSceneProps) {
-  const roomConfig = ROOM_CONFIG[roomId] ?? { width: 3, depth: 4 };
+  const roomConfig = useMemo(
+    () => ROOM_CONFIG[roomId] ?? { width: 3, depth: 4 },
+    [roomId]
+  );
 
   // 简单把家具排成一条线，之后可以换成你的布局结果
   const furnitureInstances = useMemo(() => {

@@ -1,5 +1,4 @@
 // 归一化身高 + 贴地
-import { group } from 'console'
 import { useLayoutEffect,RefObject, useRef } from 'react'
 import { Group, Box3, Vector3 } from 'three'
 
@@ -33,6 +32,6 @@ useLayoutEffect(() => {
 
         const [x0, z0] = [g.position.x, g.position.z]
         g.position.set(x0, -minY, z0)
-    }, [groupRef.current, targetHeight])
+    }, [groupRef, targetHeight])
 
 }

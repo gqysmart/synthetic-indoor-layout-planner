@@ -1,6 +1,6 @@
-import { useGLTF, useAnimations } from '@react-three/drei'
+import { useGLTF } from '@react-three/drei'
 import { useEffect, useRef } from 'react'
-import { Group, LoopRepeat, Mesh, Vector3, Box3 } from 'three'
+import { Group } from 'three'
 import { useNormalizer } from './useNormalizer'
 import { useCharacterAnimator } from './useAnimator'
 import { useKeyboardController } from './useKeyboardController'
@@ -19,7 +19,7 @@ export function Character({
     const groupRef = useRef<Group>(null)
 
     // 1) useGLTF 是 Suspense hook，本身就会“延迟”渲染
-    const { scene, animations } = useGLTF('/models/personaje_rs.glb')
+    const { scene, animations } = useGLTF(modelUrl)
 
     // 2) 无论如何，每次 render 都调用 useAnimations
 
@@ -29,6 +29,12 @@ export function Character({
 
     const pathFollowerEnabled = mode === 'path' || mode === 'mixed'
     const keyboardEnabled = mode === 'manual' || mode === 'mixed'
+
+    useEffect(() => {
+        if (!groupRef.current || !initialPosition) return
+        const [x, z] = initialPosition
+        groupRef.current.position.set(x, groupRef.current.position.y, z)
+    }, [initialPosition])
 
     // 路径跟随
     usePathFollower(groupRef, path, {

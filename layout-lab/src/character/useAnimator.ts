@@ -1,6 +1,6 @@
 // app/character/useAnimator.ts
-import { Ref, RefObject, useEffect } from 'react'
-import { AnimationClip, Group, LoopRepeat, Mesh, Object3D } from 'three'
+import { RefObject, useEffect } from 'react'
+import { AnimationClip, Group, LoopRepeat, Mesh } from 'three'
 import { useAnimations } from '@react-three/drei'
 
 export function useCharacterAnimator(
@@ -32,7 +32,7 @@ export function useCharacterAnimator(
     if (!action) return
     action.reset().play()
     action.loop = LoopRepeat
-  }, [scene,actions, names])
+  }, [scene, actions, names, groupRef])
 
  
 

@@ -2,8 +2,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getPlannerWsUrl } from "@/lib/wbsocket/url";
-import { get } from "http";
 
 export type PlannerStatus = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -57,7 +55,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
                     const data = JSON.parse(event.data) as WsIncomingMessage;
                     onMessage?.(data);
                 } catch (e) {
-                    console.warn("planner ws invalid message", event.data);
+                    console.warn("planner ws invalid message", event.data, e);
                 }
             };
 
@@ -69,7 +67,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
                 setStatus("error");
             };
         },
-        []
+        [onMessage]
     );
 
     const sendCommand = useCallback((message: WsIncomingMessage) => {
