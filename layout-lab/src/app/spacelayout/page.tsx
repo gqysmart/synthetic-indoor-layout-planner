@@ -9,6 +9,7 @@ import { useMemo, useState, memo, useEffect } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
 import { WsIncomingMessage } from "@/lib/types/websocketMessage"
+import pathRandom from "../spacelayout/testPath"
 
 type Room = string | null;
 type Furniture = string;
@@ -67,7 +68,7 @@ export default function RoomLayoutPage() {
         room,
         furnitures,
         algorithm,
-        path,
+        path: pathRandom,
     }), [room, furnitures, algorithm, path]);
 
     return (

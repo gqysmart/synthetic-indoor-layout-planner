@@ -17,6 +17,7 @@ export function Character({
     modelUrl = '/models/personaje_rs.glb',
 }: CharacterProps) {
     const groupRef = useRef<Group>(null)
+    console.log("Character render with modelUrl:", path)
 
     // 1) useGLTF 是 Suspense hook，本身就会“延迟”渲染
     const { scene, animations } = useGLTF(modelUrl)
