@@ -24,7 +24,7 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         furniture_list = [
             # furniture_example_table,
             # furniture_example_desk_round,
-            furniture_example_bed,
+            # furniture_example_bed,
         # furniture_example_wardrobe,
     ]
     if agent is None:
@@ -50,10 +50,11 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         room=room,
         furniture_list=furniture_list,
         agent=agent,
+        debug=debug,
     )
 
-    start = (250, 250)
-    goal = (220, 300)   # 随便先放一个不等于 start 的点
+    start = (360, 330)
+    goal = (0,0, 300)   # 随便先放一个不等于 start 的点
     method = method if method is not None else "Astar"
     path = []
     if method=="Astar":

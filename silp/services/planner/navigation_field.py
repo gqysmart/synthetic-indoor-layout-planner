@@ -9,9 +9,9 @@ from silp.lib.debug.debug import Debug
 
 
 class MaskValue:
-    mask_value_container = 200
-    mask_value_obstacle = 10
-    mask_value_furniture = 1
+    mask_value_container = 255
+    mask_value_obstacle = 100
+    mask_value_furniture = 20
 
 @dataclass
 class Agent:
@@ -39,7 +39,6 @@ class PixelNavigationField:
 
     mask_value: MaskValue = field(default_factory=MaskValue)
 
-    debug: Optional[Debug] = None
 
     # ---------- 查询接口 ----------
 
@@ -66,6 +65,7 @@ class PixelNavigationField:
         room: PlacedEntity,
         furniture_list: Optional[List[PlacedEntity]] = None,
         agent: Optional[SimpleAgent] = None,
+        debug: Optional[Debug] = None,
     ) -> "PixelNavigationField":
         """
         使用房间 + 家具 + SimpleAgent 构造像素导航场：
@@ -100,18 +100,18 @@ class PixelNavigationField:
         # 保存到 self
         self.container_mask = container_mask
         self.obstacle_mask = obstacle_mask
-        if self.debug is not None:
-            self.debug.save_image(
+        if debug is not None:
+            debug.save_image(
                 self.obstacle_mask, "obstacle")
 
         # 3) 如果给了 agent，顺便构建 walkable_mask
         if agent is not None:
             px_req = agent.required_clearance_m * self.pcs.pixels_per_meter
-            self._build_dist_and_walkable_with_simple_agent(px_req)
+            self._build_dist_and_walkable_with_simple_agent(px_req, debug=debug)
 
         return self
 
-    def _build_dist_and_walkable_with_simple_agent(self, px_req: float) -> None:
+    def _build_dist_and_walkable_with_simple_agent(self, px_req: float, debug: Optional[Debug] = None) -> None:
         """
         使用 EDT 为“圆形 SimpleAgent”构建
         - distance_to_obstacles
@@ -136,8 +136,8 @@ class PixelNavigationField:
             maskSize=cv.DIST_MASK_PRECISE,
         )
         self.distance_to_obstacles = dist
-        if self.debug is not None:
-            self.debug.save_image(
+        if debug is not None:
+            debug.save_image(
                 self.distance_to_obstacles, "edt")
 
 
@@ -150,9 +150,7 @@ class PixelNavigationField:
 
     # ---------- 调试可视化 ----------
 
-    def set_debug(self, debug: Debug) -> "PixelNavigationField":
-        self.debug = debug
-        return self
+   
 
     def to_debug_bgr(self) -> np.ndarray:
         if self.container_mask is None or self.obstacle_mask is None:

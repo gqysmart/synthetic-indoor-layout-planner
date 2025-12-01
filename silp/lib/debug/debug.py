@@ -75,7 +75,7 @@ class Debug_based_work_id(Debug):
     def save_mask(self, mask: np.ndarray, file_name: str):
         if not self.enable:
             return
-
+        print(f"Debug: saving mask to {file_name}.png")
         self._ensure_dir()
 
         filepath = Path(self.save_dir, self.work_id, f"{file_name}.png")
@@ -94,6 +94,7 @@ class Debug_based_work_id(Debug):
     def save_image(self, image: np.ndarray, filename: str):
         if not self.enable:
             return
+        print(f"Debug: saving image to {filename}.png")
 
         self._ensure_dir()
 
