@@ -126,24 +126,47 @@ BasicShape = Union[Line, Arc]
 # ==========================================================
 # 5. Composite Shape: Curve
 # ==========================================================
+
+def _points_equal(a: Point, b: Point, eps: float = 1e-9) -> bool:
+    return math.isclose(a[0], b[0], abs_tol=eps) and math.isclose(a[1], b[1], abs_tol=eps)
+
 @dataclass(kw_only=True)
 class Curve(Shape):
     shapes: list[BasicShape] = field(default_factory=list)
 
     def refine(self) -> None:
         """
-        Refine a polyline/curve into a vertex sequence by concatenating vertices from each shape in order.
+        Refine a polyline/curve into a vertex sequence by concatenating
+        vertices from each shape in order, while:
+        - avoiding duplicate joints between consecutive segments
+        - avoiding an explicit closing vertex equal to the first one
+          (fillPoly / polygon logic会自动闭合)
         """
         self._vertices_buffer = []
-        for shape in self.shapes:
+
+        for i, shape in enumerate(self.shapes):
             if not shape.is_refined():
                 shape.refine()
-            self._vertices_buffer.extend(shape._vertices_buffer)
+
+            verts = shape._vertices_buffer
+            if not verts:
+                continue
+
+            if i == 0:
+                # 第一段：全部顶点都保留
+                self._vertices_buffer.extend(verts)
+            else:
+                # 后续段：如果本段首点 == 当前末点，就跳过首点
+                start_idx = 0
+                if self._vertices_buffer and _points_equal(verts[0], self._vertices_buffer[-1]):
+                    start_idx = 1
+                self._vertices_buffer.extend(verts[start_idx:])
+
+        # 如果最后一个点和第一个点相同，就删除最后一个，避免显式闭环点
+        if len(self._vertices_buffer) > 1 and _points_equal(self._vertices_buffer[0], self._vertices_buffer[-1]):
+            self._vertices_buffer.pop()
 
     def get_edge(self, index: int) -> BasicShape:
-        """
-        Get the edge (Line or Arc) at the given index.
-        """
         return self.shapes[index]
 
 

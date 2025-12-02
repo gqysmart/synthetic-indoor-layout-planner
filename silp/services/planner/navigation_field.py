@@ -10,6 +10,7 @@ from silp.lib.debug.debug import Debug
 
 class MaskValue:
     mask_value_container = 255
+    mask_value_walkable = 200
     mask_value_obstacle = 100
     mask_value_furniture = 20
 
@@ -78,6 +79,7 @@ class PixelNavigationField:
 
         # 1) container mask: 房间区域
         container_mask = np.zeros((h, w), dtype=np.uint8)
+
         room_poly_world = room.world_polygon()
         container_mask = self.pcs.polygon_to_mask(
             room_poly_world,
@@ -125,9 +127,10 @@ class PixelNavigationField:
         free_uint8 = np.where(
             (self.container_mask == self.mask_value.mask_value_container)
             & (self.obstacle_mask != self.mask_value.mask_value_obstacle),
-            255,
+            self.mask_value.mask_value_walkable,
             0,
         ).astype(np.uint8)
+
 
         # L2 distance transform（EDT）
         dist = cv.distanceTransform(
@@ -147,6 +150,9 @@ class PixelNavigationField:
             & (self.container_mask == self.mask_value.mask_value_container)
         )
         self.walkable_mask = walkable
+        if debug is not None:
+            debug.save_image(
+                self.container_mask, "walkable")
 
     # ---------- 调试可视化 ----------
 

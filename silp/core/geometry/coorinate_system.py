@@ -108,7 +108,7 @@ class PixelCoordinateSystem:
         wx0, wy0 = self.world_left_top
         col = int(round((x - wx0) * self.pixels_per_meter))
         row = int(round((y - wy0) * self.pixels_per_meter))
-        return  row, col
+        return  col,row
     
     def worlds_to_pixels(self, world_pts: List[Tuple[float, float]]) -> List[Tuple[int, int]]:
         """

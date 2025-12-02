@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Grid, OrbitControls } from "@react-three/drei"
 import { FurnitureModel3D } from "@/components/3Dmodels/furniture3D"
 import { Character } from "@/components/3Dmodels/character"
-import { useMemo, useState, memo, useEffect } from "react"
+import { useMemo, useState, memo, useEffect, useCallback } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
 import { WsIncomingMessage } from "@/lib/types/websocketMessage"
@@ -25,21 +25,21 @@ export default function RoomLayoutPage() {
     const [path, setPath] = useState<[number, number][] | null>([]);
 
     const url_for_jobId = "/api/plan/jobs";
-    const { startSocket, sendCommand } = usePlannerSocket((msg: WsIncomingMessage) => {
-        // 这里根据消息类型处理不同的逻辑
+
+    const handlePlannerMessage = useCallback((msg: WsIncomingMessage) => {
         if (msg.type === "status") {
             console.log("Websocket Status update:", msg.payload?.message);
-
         } else if (msg.type === "error") {
             console.error("Error from websocket server:", msg.payload?.message);
-        }
-        else if (msg.type === "path_response") {
+        } else if (msg.type === "path_response") {
             if (msg.payload?.command === "start_path_finding") {
                 setPath(msg.payload.path);
             }
             console.log("Response from websocket server:", msg.payload);
         }
-    });
+    }, []);
+    const { status, startSocket, sendCommand, stopSocket } =
+        usePlannerSocket(handlePlannerMessage);
 
     useEffect(() => {
         // Example: Fetch a new job ID from the server when the component mounts
@@ -59,8 +59,13 @@ export default function RoomLayoutPage() {
 
     useEffect(() => {
         if (!wsUrl) return;
+        console.log("Starting websocket with url:", wsUrl);
         startSocket(wsUrl);
-    }, [wsUrl, startSocket]);
+        return () => {
+            // 组件卸载时关闭连接
+            stopSocket();
+        }
+    }, [wsUrl, startSocket, stopSocket]);
 
 
 
@@ -131,6 +136,9 @@ export default function RoomLayoutPage() {
                     </h2>
                     <section>
                         <p>wsUrl: {wsUrl}</p>
+                        <div>
+                            <label>Status: {status}</label>
+                        </div>
                         <button className="w-full bg-green-600 text-white rounded p-2" onClick={() => {
                             if (wsUrl) {
 
@@ -189,7 +197,7 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 rotation={[-Math.PI / 2, 0, 0]}
                 position={[0, 0, 0]}
             >
-                <planeGeometry args={[3, 4]} />
+                <planeGeometry args={[3.6, 3.3]} />
                 <meshStandardMaterial color="#dddddd" />
                 {/* <shadowMaterial transparent opacity={0.4} /> */}
             </mesh>

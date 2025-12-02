@@ -1,8 +1,10 @@
 from typing import List, Optional
+from pathlib import Path
+from collections import deque
 import numpy as np
 from silp.core.geometry.coorinate_system import PixelCoordinateSystem
 from silp.core.geometry.shape import Rectangle
-from silp.lib.debug.debug import Debug
+from silp.lib.debug.debug import Debug, Debug_based_work_id
 from silp.services.planner.navigation_field import PixelNavigationField, SimpleAgent,Agent
 from silp.domain.layout import room_example_a
 from silp.domain.furniture import (
@@ -28,7 +30,7 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         # furniture_example_wardrobe,
     ]
     if agent is None:
-        agent = SimpleAgent(radius_m=0.3)
+        agent = SimpleAgent(radius_m=0.0)
 
     rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
     room_w = rect.width
@@ -53,9 +55,9 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         debug=debug,
     )
 
-    start = (360, 330)
-    goal = (0,0, 300)   # 随便先放一个不等于 start 的点
-    method = method if method is not None else "Astar"
+    start = (320, 350)
+    goal = (50, 50)   # 随便先放一个不等于 start 的点
+    method = method if method is not None else "BFS"
     path = []
     if method=="Astar":
         from silp.services.planner.path_find_Astar import astar_shortest_path
@@ -68,6 +70,8 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
     return []
 
 if __name__ == "__main__":
+    DEBUG_ROOT = Path("debug")
+    debug = Debug_based_work_id(save_dir=str(DEBUG_ROOT))
     
-    path = room_path_find()
+    path = room_path_find(debug=debug)
     print("path:", path)

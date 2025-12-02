@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { WsIncomingMessage } from "@/lib/types/websocketMessage";
 
 export type PlannerStatus = "idle" | "connecting" | "open" | "closed" | "error";
 
@@ -11,64 +12,65 @@ export type RoomLayoutContext = {
     algorithm: string | null;
 };
 
-// type PlannerMessage = {
-//     // 根据你后端的返回结构改
-//     type: string;
-//     payload?: unknown;
-// };
-import { WsIncomingMessage } from "@/lib/types/websocketMessage";
-
 export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
     const wsRef = useRef<WebSocket | null>(null);
     const wsUrlRef = useRef<string | null>(null);
+    const onMessageRef = useRef<typeof onMessage>();
     const [status, setStatus] = useState<PlannerStatus>("idle");
 
-    const startSocket = useCallback(
-        (ws_url: string) => {
-            // 已经有连接就先关掉
+    // 始终保持最新的 onMessage
+    useEffect(() => {
+        onMessageRef.current = onMessage;
+    }, [onMessage]);
 
+    const startSocket = useCallback((ws_url: string) => {
+        // 避免同一个 URL 重复连接
+        if (
+            ws_url === wsUrlRef.current &&
+            wsRef.current &&
+            wsRef.current.readyState === WebSocket.OPEN
+        ) {
+            return;
+        }
 
-            // const url = `${process.env.NEXT_PUBLIC_PLANNER_WS_URL ?? "ws://localhost:8000"}/ws/planner/${jobId}`;
-            if (ws_url === wsUrlRef.current && wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                return; // 避免重复连接
-            }
+        // 如果之前有打开的连接，先关掉
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+            wsRef.current.close();
+        }
 
-            if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-                wsRef.current.close();
-            }
+        wsUrlRef.current = ws_url;
+        console.log("Connecting to planner ws:", ws_url);
 
-            wsUrlRef.current = ws_url;
-            const ws = new WebSocket(ws_url);
+        const ws = new WebSocket(ws_url);
+        wsRef.current = ws;
+        setStatus("connecting");
 
-            wsRef.current = ws;
-            setStatus("connecting");
+        ws.onopen = () => {
+            setStatus("open");
+            // 这里可以在连上以后自动发一条初始化命令，如果你想的话
+            // e.g. onMessageRef.current?.({ type: 'connected' } as any)
+        };
 
-            ws.onopen = () => {
-                setStatus("open");
-
-                // 这里就是你说的 startSocketCommand with context 参数
-
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data) as WsIncomingMessage;
-                    onMessage?.(data);
-                } catch (e) {
-                    console.warn("planner ws invalid message", event.data, e);
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data) as WsIncomingMessage;
+                // 用最新的 onMessage
+                if (onMessageRef.current) {
+                    onMessageRef.current(data);
                 }
-            };
+            } catch (e) {
+                console.warn("planner ws invalid message", event.data, e);
+            }
+        };
 
-            ws.onclose = () => {
-                setStatus("closed");
-            };
+        ws.onclose = () => {
+            setStatus("closed");
+        };
 
-            ws.onerror = () => {
-                setStatus("error");
-            };
-        },
-        [onMessage]
-    );
+        ws.onerror = () => {
+            setStatus("error");
+        };
+    }, []); // ⬅️ 现在没有依赖 onMessage 了，startSocket 是稳定引用
 
     const sendCommand = useCallback((message: WsIncomingMessage) => {
         const ws = wsRef.current;
@@ -81,7 +83,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
         } catch (e) {
             console.error("planner ws send failed", e);
         }
-    }, []);
+    }, []); // 同样是稳定引用
 
     const stopSocket = useCallback(() => {
         if (wsRef.current) {
@@ -89,7 +91,7 @@ export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
             wsRef.current = null;
             setStatus("closed");
         }
-    }, []);
+    }, []); // 稳定引用
 
     // 组件卸载时自动断开
     useEffect(() => {
