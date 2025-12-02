@@ -21,7 +21,7 @@ class Agent:
 @dataclass
 class SimpleAgent(Agent):
     radius_m: float
-    extra_clearance_m: float = 0.0
+    extra_clearance_m: float = 0.1
 
     @property
     def required_clearance_m(self) -> float:
@@ -85,6 +85,7 @@ class PixelNavigationField:
             room_poly_world,
             value=self.mask_value.mask_value_container,
         )
+        print("Container mask constructed.",np.count_nonzero(container_mask))
 
         # 2) obstacle mask: 家具
         obstacle_mask = np.zeros((h, w), dtype=np.uint8)
@@ -147,12 +148,21 @@ class PixelNavigationField:
         # 在房间内，且距离障碍 ≥ px_req 的位置是 walkable
         walkable = (
             (dist >= px_req)
-            & (self.container_mask == self.mask_value.mask_value_container)
+            # & (self.container_mask == self.mask_value.mask_value_container)&()
         )
         self.walkable_mask = walkable
         if debug is not None:
             debug.save_image(
-                self.container_mask, "walkable")
+                self.walkable_mask, "walkable")
+            
+    @property
+    def walkable_image(self) -> np.ndarray:
+        if self.walkable_mask is None:
+            img = np.zeros_like(self.container_mask, dtype=np.uint8)
+            return img
+        img = np.zeros_like(self.container_mask, dtype=np.uint8)
+        img = np.copy(self.walkable_mask)
+        return img
 
     # ---------- 调试可视化 ----------
 

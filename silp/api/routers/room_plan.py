@@ -88,6 +88,7 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                         agent = None
                         path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
                         path = _serialize_path(path)
+                        print("Path found:", len(path))
                         await manager.broadcast(job_id, {"type": "path_response", "payload":{"command":"start_path_finding", "path": path}})
                         if len(path) == 0:
                             print("No path found.")

@@ -35,9 +35,7 @@ def bfs_shortest_path(
     - goal: 目标状态 (row, col)
     - nav: PixelNavigationField 对象，提供网格信息和障碍物检测功能。
     """
-    if debug is not None:
-        nav.set_debug(debug)
-
+  
     sr, sc = start
     gr, gc = goal
 

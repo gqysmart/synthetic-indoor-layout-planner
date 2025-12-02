@@ -26,7 +26,7 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         furniture_list = [
             # furniture_example_table,
             # furniture_example_desk_round,
-            # furniture_example_bed,
+            furniture_example_bed,
         # furniture_example_wardrobe,
     ]
     if agent is None:
@@ -55,17 +55,24 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
         debug=debug,
     )
 
-    start = (320, 350)
-    goal = (50, 50)   # 随便先放一个不等于 start 的点
+    start = (300, 320)
+    goal = (250, 300)   # 随便先放一个不等于 start 的点
     method = method if method is not None else "BFS"
     path = []
     if method=="Astar":
         from silp.services.planner.path_find_Astar import astar_shortest_path
-        path = astar_shortest_path(start, goal, nav) 
+        path = astar_shortest_path(start, goal, nav,debug=debug) 
 
     elif method=="BFS":
-        path = bfs_shortest_path(start, goal, nav)
+        path = bfs_shortest_path(start, goal, nav,debug=debug)
+
     if path is not None:
+       if debug is not None:
+            walkable_img = nav.walkable_image
+            walkable_img[[row for row,col in path],[col for row,col in path]]=0
+            debug.save_image(
+                walkable_img, "path")
+            
        return pcs.pixels_to_worlds(path)
     return []
 

@@ -52,8 +52,7 @@ def astar_shortest_path(
     - 如果有路径，返回状态列表 [ (r0,c0), (r1,c1), ... ]
     - 如果无路径，返回 None
     """
-    if debug is not None:
-        nav.set_debug(debug)
+    
 
     sr, sc = start
     gr, gc = goal

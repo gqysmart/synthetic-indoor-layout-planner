@@ -38,9 +38,13 @@ export function Character({
     }, [initialPosition])
 
     // 路径跟随
+    // usePathFollower(groupRef, path, {
+    //     enabled: pathFollowerEnabled,
+    //     segmentDuration,
+    // })
     usePathFollower(groupRef, path, {
         enabled: pathFollowerEnabled,
-        segmentDuration,
+        speed,
     })
 
     // 键盘控制
