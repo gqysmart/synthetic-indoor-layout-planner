@@ -18,40 +18,75 @@ function getModelPath(name: string) {
     }
 }
 
-const defaultTransform: Transform = {
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1],
+export type FurnitureProps = {
+    name: string;
+    position?: [number, number];
+    rotation?: number; // in radians
+    width?: number;
+    height?: number;
 };
 
+
 export function FurnitureModel3D({
-    name,
-    transform = defaultTransform,
+    props,
+
 }: {
-    name: string;
-    transform?: Transform;
+    props?: FurnitureProps;
 }) {
-    const modelPath = getModelPath(name);
-    if (!modelPath) return null;
-    switch (name) {
-        case "bed":
-            return <BedModel3D safe_path={modelPath} transform={transform} />;
-        case "wardrobe":
-            return <WardrobeModel3D safe_path={modelPath} transform={transform} />;
-        case "desk":
-            return <DeskModel3D safe_path={modelPath} transform={transform} />;
-        default:
-            return null;
+
+    console.log("Rendering FurnitureModel3D with props:", props);
+    const name = props?.name || "";
+
+
+    const defaultTransform: Transform = {
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+        scale: [1, 1, 1],
+    };
+    // defaultTransform.position[0] = props?.position ? props.position[0] : 0;
+    // defaultTransform.position[2] = props?.position ? props.position[1] : 0;
+
+    // defaultTransform.rotation[1] = props?.rotation ? -props.rotation : 0;
+
+    if (name.includes("BED") || name.includes("bed")) {
+        console.log("Rendering bed model");
+        const modelPath = getModelPath("bed");
+        if (!modelPath) return null;
+        return <BedModel3D safe_path={modelPath} transform={defaultTransform} />;
+    } else if (name.includes("WARDROBE") || name.includes("wardrobe")) {
+        console.log("Rendering wardrobe model");
+        const modelPath = getModelPath("wardrobe");
+        if (!modelPath) return null;
+        return <WardrobeModel3D safe_path={modelPath} transform={defaultTransform} />;
+    } else if (name.includes("DESK") || name.includes("desk")) {
+        console.log("Rendering desk model");
+        const modelPath = getModelPath("desk");
+        if (!modelPath) return null;
+        return <DeskModel3D safe_path={modelPath} transform={defaultTransform} />;
+    } else {
+        return null;
     }
+
+    // switch (name) {
+    //     case "bed":
+    //         return <BedModel3D safe_path={modelPath} transform={defaultTransform} />;
+    //     case "wardrobe":
+    //         return <WardrobeModel3D safe_path={modelPath} transform={defaultTransform} />;
+    //     case "desk":
+    //         return <DeskModel3D safe_path={modelPath} transform={defaultTransform} />;
+    //     default:
+    //         return null;
 }
+
 
 export function BedModel3D({
     safe_path,
-    transform = defaultTransform,
+    transform,
 }: {
     safe_path: string;
-    transform?: Transform;
+    transform: Transform;
 }) {
+
 
 
     const gltf = useGLTF(safe_path);
@@ -88,11 +123,12 @@ export function BedModel3D({
 }
 export function WardrobeModel3D({
     safe_path,
-    transform = defaultTransform,
+    transform,
 }: {
     safe_path: string;
-    transform?: Transform;
+    transform: Transform;
 }) {
+
 
     const gltf = useGLTF(safe_path);
 
@@ -130,11 +166,12 @@ export function WardrobeModel3D({
 
 export function DeskModel3D({
     safe_path,
-    transform = defaultTransform,
+    transform,
 }: {
     safe_path: string;
-    transform?: Transform;
+    transform: Transform;
 }) {
+
 
 
     const gltf = useGLTF(safe_path);

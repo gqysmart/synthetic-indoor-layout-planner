@@ -14,19 +14,41 @@ export type WsPathResponseMessage = WsMessageBase<
     path: [number, number][] | null;
   }
 >;
+export type WsLayoutResponseMessage = WsMessageBase<
+  "layout_response",
+  {
+    command: string;
+    layout: LayoutDTO[];
+  }
+>;
+export interface LayoutDTO {
+  name:string;
+  room: {
+    width: number
+    height: number
+  }
+  furnitures: {
+    type: string
+    width: number
+    height: number
+    position:[number, number]
+    rotation:number
+  }[]
+}
 
 
   export type WsCommandMessage = WsMessageBase<
   "command",
+
   {
     command:string;
-    room?: string |null;
-    furnitures?: string[] |null;
-    algorithm?: string | null;
+    parameters?: unknown
+  
   }
 >;
 export type WsIncomingMessage =
   | WsStatusMessage
   | WsCommandMessage
   | WsErrorMessage
-  | WsPathResponseMessage;
+  | WsPathResponseMessage
+  | WsLayoutResponseMessage;

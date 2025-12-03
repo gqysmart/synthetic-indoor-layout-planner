@@ -176,13 +176,23 @@ def draw_layout(layout: RoomLayout, canvas: CVCanvas) -> np.ndarray:
     canvas.show("Debug Canvas")
     return img
 
+data_room_layout_example_a = {
+    "name":"layout_example_a",
+     "room": {"width":3.6, "height":3.3},
+    "furnitures": [
+        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.8, "position": [-0.8, -0.9], "rotation": 0},
+        {"type":"TABLE_4P", "width": 1.2, "height": 0.8, "position": [1.4, -1.05], "rotation": 90},
+        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.6, "position": [-0.9, 1.35], "rotation": 0},
+        {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90},
+    ]
+}
 
 room_a = room_example_a
 furniture_list_1 = [
-    furniture_example_bed.clone_to("bed_01_room_a", Transform(x=-0.8, y=-0.9, r=0)),
-    furniture_example_table.clone_to("table_01_room_a", Transform(x=1.4, y=-1.05, r=90)),
-    furniture_example_wardrobe.clone_to("wardrobe_01_room_a", Transform(x=-0.9, y=1.35, r=0)),
-    furniture_example_desk_round.clone_to("desk_round_01_room_a", Transform(x=0, y=0, r=90)),
+    furniture_example_bed.clone_to("bed_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][0]["position"][0], y=data_room_layout_example_a["furnitures"][0]["position"][1], r=data_room_layout_example_a["furnitures"][0]["rotation"])),
+    furniture_example_table.clone_to("table_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][1]["position"][0], y=data_room_layout_example_a["furnitures"][1]["position"][1], r=data_room_layout_example_a["furnitures"][1]["rotation"])),
+    furniture_example_wardrobe.clone_to("wardrobe_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][2]["position"][0], y=data_room_layout_example_a["furnitures"][2]["position"][1], r=data_room_layout_example_a["furnitures"][2]["rotation"])),
+    furniture_example_desk_round.clone_to("desk_round_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][3]["position"][0], y=data_room_layout_example_a["furnitures"][3]["position"][1], r=data_room_layout_example_a["furnitures"][3]["rotation"])),
 ]
 
 layout_example_a = create_room_layout_MANUAL(
@@ -190,18 +200,28 @@ layout_example_a = create_room_layout_MANUAL(
     furnitures=furniture_list_1,
 )
 
+data_room_layout_example_b = {
+    "name":"layout_example_b",
+     "room": {"width":4.0, "height":3.5},   
+     "furnitures": [ 
+        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.8, "position": [-0.8, -0.9], "rotation": 0},
+        {"type":"TABLE_4P", "width": 1.2, "height": 0.8, "position": [1.4, -1.05], "rotation": 90},
+        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.6, "position": [-0.9, 1.35], "rotation": 0},
+        {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90}, 
+    ]
+}
 
 room_b = room_example_b
 furniture_list_2 = [
-    furniture_example_bed.clone_to("bed_01_room_b", Transform(x=-0.8, y=-0.9, r=0)),
-    furniture_example_table.clone_to("table_01_room_b", Transform(x=1.4, y=-1.05, r=90)),
-    furniture_example_wardrobe.clone_to("wardrobe_01_room_b", Transform(x=-0.9, y=1.35, r=0)),
-    furniture_example_desk_round.clone_to("desk_round_01_room_b", Transform(x=0, y=0, r=90)),
+    furniture_example_bed.clone_to("bed_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][0]["position"][0], y=data_room_layout_example_b["furnitures"][0]["position"][1], r=data_room_layout_example_b["furnitures"][0]["rotation"])),
+    furniture_example_table.clone_to("table_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][1]["position"][0], y=data_room_layout_example_b["furnitures"][1]["position"][1], r=data_room_layout_example_b["furnitures"][1]["rotation"])),
+    furniture_example_wardrobe.clone_to("wardrobe_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][2]["position"][0], y=data_room_layout_example_b["furnitures"][2]["position"][1], r=data_room_layout_example_b["furnitures"][2]["rotation"])),
+    furniture_example_desk_round.clone_to("desk_round_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][3]["position"][0], y=data_room_layout_example_b["furnitures"][3]["position"][1], r=data_room_layout_example_b["furnitures"][3]["rotation"])),
 ]
 
 layout_example_b = create_room_layout_MANUAL(
-    room=room_a,
-    furnitures=furniture_list_1,
+    room=room_b,
+    furnitures=furniture_list_2,
 )
 
 # -----------------------

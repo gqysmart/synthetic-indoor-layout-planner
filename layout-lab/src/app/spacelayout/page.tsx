@@ -3,26 +3,40 @@
 import { Canvas } from "@react-three/fiber"
 import Link from "next/link"
 import { Grid, OrbitControls } from "@react-three/drei"
-import { FurnitureModel3D } from "@/components/3Dmodels/furniture3D"
+import { FurnitureModel3D, FurnitureProps } from "@/components/3Dmodels/furniture3D"
 import { Character } from "@/components/3Dmodels/character"
 import { useMemo, useState, memo, useEffect, useCallback } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
-import { WsIncomingMessage } from "@/lib/types/websocketMessage"
+import { LayoutDTO, WsIncomingMessage } from "@/lib/types/websocketMessage"
+import { LayoutPreview } from "@/components/ui/layoutPreview"
 // import pathRandom from "../spacelayout/testPath2"
 
-type Room = string | null;
-type Furniture = string;
-type Algorithm = string | null;
+
 
 
 export default function RoomLayoutPage() {
-    const [room] = useState<Room>("beadroom");
-    const [furnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
-    const [algorithm] = useState("csp");
+    // const [room] = useState<Room>("beadroom");
+    // const [furnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
+    // const [algorithm] = useState("csp");
 
     const [wsUrl, setWsUrl] = useState<string | null>(null);
     const [path, setPath] = useState<[number, number][] | null>([]);
+    const [data_layout, set_data_layout] = useState<LayoutDTO[] | null>([]);
+    /* for show which layout we want to use */
+    const [selected, set_selected] = useState<number | null>(null);
+    /* list the algorithms */
+    const algorithms = ["csp", "A*"];
+    const [algorithm_selected, set_algorithm_selected] = useState<number>(0);
+
+
+    const context_selected_layout: RoomLayoutContext = {
+        layout_selected: selected,
+        layouts: data_layout,
+        algorithm: algorithms[algorithm_selected],
+        path: path,
+
+    };
 
     const url_for_jobId = "/api/plan/jobs";
 
@@ -37,7 +51,18 @@ export default function RoomLayoutPage() {
             }
             console.log("Response from websocket server:", msg.payload);
         }
+        else if (msg.type === "layout_response") {
+            if (msg.payload?.command === "get_example_layout") {
+                const layout = msg.payload.layout;
+                console.log("Received example layout:", layout);
+                set_data_layout(layout);
+                if (layout.length > 0) {
+                    set_selected(0);//default selct the first one
+                }
+            }
+        }
     }, []);
+
     const { status, startSocket, sendCommand, stopSocket } =
         usePlannerSocket(handlePlannerMessage);
 
@@ -69,12 +94,12 @@ export default function RoomLayoutPage() {
 
 
 
-    const roomContext: RoomLayoutContext = useMemo(() => ({
-        room,
-        furnitures,
-        algorithm,
-        path,
-    }), [room, furnitures, algorithm, path]);
+    // const roomContext: RoomLayoutContext = useMemo(() => ({
+    //     room,
+    //     furnitures,
+    //     algorithm,
+    //     path,
+    // }), [room, furnitures, algorithm, path]);
 
     return (
         <main className="h-screen bg-slate-50 flex flex-col">
@@ -88,7 +113,17 @@ export default function RoomLayoutPage() {
 
             <section className="flex-1 flex">
                 <aside className="w-64 border-r p-4 overflow-y-auto">
-                    <ul className="space-y-6 text-sm">
+                    <h2>Layout Preview</h2>
+                    <button className="mb-2 w-full bg-blue-500 text-white rounded px-4 py-2" onClick={() => sendCommand({ type: "command", payload: { command: "get_example_layout" } })}>Refresh Layouts</button>
+                    <select value={selected !== null ? String(selected) : ""} onChange={(e) => set_selected(Number(e.target.value))} className="w-full mb-4 border p-2 rounded"  >
+                        {data_layout?.map((layout, index) => (
+                            <option key={layout.name} value={index}>{layout.name}</option>
+                        ))}
+                    </select>
+
+                    <LayoutPreview layout={selected !== null && data_layout ? data_layout[selected] : null} />
+
+                    {/* <ul className="space-y-6 text-sm">
                         <li className="space-y-2">
                             <p className="font-medium">Change Room</p>
                             <select className="w-full border p-2 rounded">
@@ -126,7 +161,7 @@ export default function RoomLayoutPage() {
                             </select>
                             <button className="w-full bg-green-600 text-white rounded p-2">Generate Layout</button>
                         </li>
-                    </ul>
+                    </ul> */}
                 </aside>
 
                 <section className="flex-1 flex flex-col min-h-0" >
@@ -142,12 +177,13 @@ export default function RoomLayoutPage() {
                         <button className="w-full bg-green-600 text-white rounded p-2" onClick={() => {
                             if (wsUrl) {
 
-                                sendCommand({ type: "command", payload: { command: "start_path_finding", room, furnitures, algorithm } });
+                                console.log("Sending path finding command with selected layout index:", selected);
+                                sendCommand({ type: "command", payload: { command: "start_path_finding", parameters: { selected: selected } } });
                             }
                         }}>Find the way</button>
                     </section>
                     <Canvas shadows dpr={[1, 2]} camera={{ position: [5, 5, 5], fov: 50 }} className="flex-1 bg-white" >
-                        <LayoutScene context={roomContext} />
+                        <LayoutScene context={context_selected_layout} />
                     </Canvas>
                 </section>
             </section>
@@ -161,14 +197,16 @@ export default function RoomLayoutPage() {
 
 type RoomLayoutContext = {
     path: [number, number][] | null,
-    room: Room,
-    furnitures: Furniture[],
-    algorithm: Algorithm | null,
+    layout_selected: number | null,
+    layouts: LayoutDTO[] | null,
+    algorithm: string | null,
 
 }
 
 const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
-    const { furnitures, path } = context;
+    const { path, algorithm, layouts, layout_selected } = context;
+    console.log("Rendering LayoutScene with context:", context);
+
 
 
 
@@ -182,48 +220,8 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 shadow-mapSize-height={2048}
                 castShadow />
 
-            {/* <mesh
-                rotation={[-Math.PI / 2, 0, 0]}
-                receiveShadow>
-                <planeGeometry args={[4, 5]} />
-                <meshStandardMaterial
-                    color={roomColor}
-                    opacity={0.35}
-                    transparent
-                />
-            </mesh> */}
-            <mesh
-                receiveShadow
-                rotation={[-Math.PI / 2, 0, 0]}
-                position={[0, 0, 0]}
-            >
-                <planeGeometry args={[3.6, 3.3]} />
-                <meshStandardMaterial color="#dddddd" />
-                {/* <shadowMaterial transparent opacity={0.4} /> */}
-            </mesh>
-            {/* <mesh>
-                <planeGeometry args={[3, 4]} />
-                <meshStandardMaterial color="#a78bfa" transparent opacity={0.5} />
-                <meshBasicMaterial color="#5b21b6" wireframe />
-            </mesh> */}
-            {
-                furnitures.map((fname, idx) =>
-                    <FurnitureModel3D key={idx} name={fname} />
-                )
-            }
-
             <Character path={path} />
 
-
-            <Grid
-                position={[0, -0.02, 0]}
-                args={[10, 10]}
-                cellSize={0.5}
-                cellThickness={0.5}
-                infiniteGrid
-                fadeDistance={30}
-                fadeStrength={1}
-            />
 
             <OrbitControls
                 enablePan
@@ -233,6 +231,65 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 maxPolarAngle={Math.PI / 2.1}
             />
             <fog attach="fog" args={["#ffffff", 20, 120]} />
+
+            {/* <mesh
+                {/* <mesh
+                rotation={[-Math.PI / 2, 0, 0]}
+                receiveShadow>
+                <planeGeometry args={[4, 5]} />
+                <meshStandardMaterial
+                    color={roomColor}
+                    opacity={0.35}
+                    transparent
+                />
+            </mesh> */}
+            {layouts && layout_selected !== null ?
+                <RoomAndFurnitures layouts={layouts} selected={layout_selected} path={path} />
+                : <mesh
+                    receiveShadow
+                    rotation={[-Math.PI / 2, 0, 0]}
+                    position={[0, 0, 0]}
+                >
+                    <planeGeometry args={[3.6, 3.3]} />
+                    <meshStandardMaterial color="#000000" />
+                    {/* <shadowMaterial transparent /> */}
+                </mesh>
+            }
         </>
     )
 })
+
+const RoomAndFurnitures = memo(function RoomAndFurnitures({ layouts, selected, path }: { layouts: LayoutDTO[], selected: number, path: [number, number][] | null }) {
+    console.log("Rendering RoomAndFurnitures with selected layout:", layouts[selected]);
+    const layout = layouts[selected];
+    const furnitures = layout.furnitures;
+    return (
+
+        <>
+
+            <Room width={layout.room.width} height={layout.room.height} />
+            {
+                furnitures.map((furniture, idx) =>
+                    <FurnitureModel3D key={idx} props={{ name: furniture.type, position: [furniture.position[0], furniture.position[1]], rotation: furniture.rotation }} />
+                )
+            }
+
+        </>
+    )
+})
+
+function Room({ width, height }: { width: number, height: number }) {
+    {
+        return (
+            <mesh
+                receiveShadow
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[0, 0, 0]}
+            >
+                <planeGeometry args={[width, height]} />
+                <meshStandardMaterial color="#ffc0cb" opacity={0.4} transparent />
+                {/* <shadowMaterial transparent opacity={0.4} /> */}
+            </mesh>
+        )
+    }
+}

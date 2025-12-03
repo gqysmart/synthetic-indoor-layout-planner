@@ -11,12 +11,16 @@ from pathlib import Path
 from fastapi import APIRouter, File, Form, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 
+from silp.core.geometry.shape import Rectangle
+from silp.domain.furniture import Furniture
 from silp.lib.connection_manager import ConnectionManager
 from silp.api.schemas.api import LayoutRequest
 from silp.lib.debug.debug import Debug_based_work_id, Debug
 from silp.services.planner.path_find_Astar import astar_shortest_path
 from silp.services.planner.path_find_bfs_op import bfs_shortest_path
 from silp.services.planner.room_path_find import room_path_find
+
+from silp.domain.layout import layout_example_a,layout_example_b
 
 
 router = APIRouter(prefix="/plan", tags=["planner"])
@@ -82,18 +86,30 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                         # method = payload.get("algorithm","Astar")
                         # agent = payload.get("agent", None)
                         print("Starting path finding...")
-                        room = None
-                        furniture_list = None
-                        method = None
+                        print("the chosen layout index:", payload.get("parameters", {}).get("selected", 0))
+                        
+                        if payload.get("parameters", {}).get("selected", 0) == 0:
+                            room = layout_example_a.room
+                            furniture_list = layout_example_a.furnitures
+                        else:
+                            room = layout_example_b.room
+                            furniture_list = layout_example_b.furnitures
+                        method = "Astar"
                         agent = None
                         path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
                         path = _serialize_path(path)
-                        print("Path found:", len(path))
                         await manager.broadcast(job_id, {"type": "path_response", "payload":{"command":"start_path_finding", "path": path}})
                         if len(path) == 0:
                             print("No path found.")
                         else:   
                             print("Path finding completed.")
+
+                    case "get_example_layout":
+                        print("Getting example room layouts...")
+                        data_layout = _get_example_room_layout()
+                       
+                        await manager.broadcast(job_id, {"type": "layout_response", "payload":{"command":"get_example_layout", "layout": data_layout}})
+                        print("Example layout sent.")
                     case _:
                         pass
 
@@ -104,10 +120,6 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                 print("Status command received:", message.get("payload"))
                 await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Status command received for job {job_id}."}})
                 continue
-            
-                
-           
-
     except WebSocketDisconnect:
         await manager.broadcast(job_id, {"type": "status", "payload":{"message": f"Disconnected from job {job_id}."} })
         manager.disconnect(job_id, websocket)
@@ -116,3 +128,11 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
 def _serialize_path(path):
     # path 是 [(r,c), (r,c) ...] 或 [(x,y) ...]
     return [list(p) for p in path]
+
+def _get_example_room_layout()->list:
+
+    import silp.domain.layout as layout
+    data_layout_a = layout.data_room_layout_example_a
+    data_layout_b = layout.data_room_layout_example_b
+    return [data_layout_a, data_layout_b]
+    
