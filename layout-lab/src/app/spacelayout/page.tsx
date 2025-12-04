@@ -257,12 +257,7 @@ export default function RoomLayoutPage() {
                             <h2 className="text-xs font-semibold text-slate-200 tracking-wide uppercase">
                                 3D Viewport
                             </h2>
-                            <p className="text-[11px] text-slate-400">
-                                Room:{" "}
-                                {selected !== null && data_layout
-                                    ? data_layout[selected].room.name ?? "Unnamed"
-                                    : "No layout selected"}
-                            </p>
+
                         </div>
                         <div className="text-[11px] text-slate-400">
                             Algo:{" "}
@@ -314,7 +309,6 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
 
             {/* 半球光：模拟天空/地面反射，让物体不那么黑 */}
             <hemisphereLight
-                skyColor="#ffffff"
                 groundColor="#dddddd"
                 intensity={0.6}
             />
@@ -382,7 +376,7 @@ const RoomAndFurnitures = memo(function RoomAndFurnitures({ layouts, selected, p
             <Room width={layout.room.width} height={layout.room.height} />
             {
                 furnitures.map((furniture, idx) =>
-                    <FurnitureModel3D key={idx} props={{ name: furniture.type, position: [furniture.position[0], furniture.position[1]], rotation: furniture.rotation }} />
+                    <FurnitureModel3D key={idx} props={{ name: furniture.type, position: [furniture.position[0], furniture.position[1]], rotation: furniture.rotation * (Math.PI / 180), width: furniture.width, height: furniture.height }} />
                 )
             }
 

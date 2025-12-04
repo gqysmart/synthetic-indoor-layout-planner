@@ -180,10 +180,10 @@ data_room_layout_example_a = {
     "name":"layout_example_a",
      "room": {"width":3.6, "height":3.3},
     "furnitures": [
-        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.8, "position": [-0.8, -0.9], "rotation": 0},
-        {"type":"TABLE_4P", "width": 1.2, "height": 0.8, "position": [1.4, -1.05], "rotation": 90},
-        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.6, "position": [-0.9, 1.35], "rotation": 0},
-        {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90},
+        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.2, "position": [-0.8, -0.9], "rotation": 0},
+        {"type":"TABLE_4P", "width": 1.2, "height": 0.6, "position": [1.4, -1.05], "rotation": 90},
+        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.75, "position": [-0.9, 1.35], "rotation": 0},
+        # {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90},
     ]
 }
 
@@ -192,7 +192,7 @@ furniture_list_1 = [
     furniture_example_bed.clone_to("bed_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][0]["position"][0], y=data_room_layout_example_a["furnitures"][0]["position"][1], r=data_room_layout_example_a["furnitures"][0]["rotation"])),
     furniture_example_table.clone_to("table_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][1]["position"][0], y=data_room_layout_example_a["furnitures"][1]["position"][1], r=data_room_layout_example_a["furnitures"][1]["rotation"])),
     furniture_example_wardrobe.clone_to("wardrobe_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][2]["position"][0], y=data_room_layout_example_a["furnitures"][2]["position"][1], r=data_room_layout_example_a["furnitures"][2]["rotation"])),
-    furniture_example_desk_round.clone_to("desk_round_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][3]["position"][0], y=data_room_layout_example_a["furnitures"][3]["position"][1], r=data_room_layout_example_a["furnitures"][3]["rotation"])),
+    # furniture_example_desk_round.clone_to("desk_round_01_room_a", Transform(x=data_room_layout_example_a["furnitures"][3]["position"][0], y=data_room_layout_example_a["furnitures"][3]["position"][1], r=data_room_layout_example_a["furnitures"][3]["rotation"])),
 ]
 
 layout_example_a = create_room_layout_MANUAL(
@@ -204,10 +204,10 @@ data_room_layout_example_b = {
     "name":"layout_example_b",
      "room": {"width":4.0, "height":3.5},   
      "furnitures": [ 
-        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.8, "position": [-0.8, -0.9], "rotation": 0},
-        {"type":"TABLE_4P", "width": 1.2, "height": 0.8, "position": [1.4, -1.05], "rotation": 90},
-        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.6, "position": [-0.9, 1.35], "rotation": 0},
-        {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90}, 
+        {"type":"BED_DOUBLE", "width": 2.0, "height": 1.2, "position": [-0.8, -0.9], "rotation": 0},
+        {"type":"TABLE_4P", "width": 1.2, "height": 0.6, "position": [1.4, -1.05], "rotation": 90},
+        {"type":"WARDROBE_2D", "width": 1.5, "height": 0.75, "position": [-0.9, 1.35], "rotation": 0},
+        # {"type":"DESK_ROUND", "width": 1.0, "height": 1.0, "position": [0, 0], "rotation": 90}, 
     ]
 }
 
@@ -216,7 +216,7 @@ furniture_list_2 = [
     furniture_example_bed.clone_to("bed_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][0]["position"][0], y=data_room_layout_example_b["furnitures"][0]["position"][1], r=data_room_layout_example_b["furnitures"][0]["rotation"])),
     furniture_example_table.clone_to("table_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][1]["position"][0], y=data_room_layout_example_b["furnitures"][1]["position"][1], r=data_room_layout_example_b["furnitures"][1]["rotation"])),
     furniture_example_wardrobe.clone_to("wardrobe_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][2]["position"][0], y=data_room_layout_example_b["furnitures"][2]["position"][1], r=data_room_layout_example_b["furnitures"][2]["rotation"])),
-    furniture_example_desk_round.clone_to("desk_round_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][3]["position"][0], y=data_room_layout_example_b["furnitures"][3]["position"][1], r=data_room_layout_example_b["furnitures"][3]["rotation"])),
+    # furniture_example_desk_round.clone_to("desk_round_01_room_b", Transform(x=data_room_layout_example_b["furnitures"][3]["position"][0], y=data_room_layout_example_b["furnitures"][3]["position"][1], r=data_room_layout_example_b["furnitures"][3]["rotation"])),
 ]
 
 layout_example_b = create_room_layout_MANUAL(
@@ -229,13 +229,8 @@ layout_example_b = create_room_layout_MANUAL(
 # -----------------------
 
 if __name__ == "__main__":
-    room = room_example_a
-    furniture_list = [
-        furniture_example_bed,
-        furniture_example_table,
-        furniture_example_wardrobe,
-        furniture_example_desk_round,
-    ]
+    room = layout_example_a.room
+    furniture_list = layout_example_a.furnitures
 
     rect: Rectangle = room.shape      # 假设 Room.shape 是 Rectangle(width, height)
     room_w = rect.width

@@ -3,7 +3,8 @@
 import { useGLTF } from "@react-three/drei";
 import { Transform } from "@/lib/types/transform";
 import * as THREE from "three";
-import { useEffect } from "react";
+import { use, useEffect } from "react";
+import { useNormalizerModelBasedWidth } from "./useNormalizerModel";
 
 function getModelPath(name: string) {
     switch (name) {
@@ -43,27 +44,33 @@ export function FurnitureModel3D({
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
     };
-    // defaultTransform.position[0] = props?.position ? props.position[0] : 0;
-    // defaultTransform.position[2] = props?.position ? props.position[1] : 0;
+    defaultTransform.position[0] = props?.position ? props.position[0] : 0;
+    defaultTransform.position[2] = props?.position ? props.position[1] : 0;
 
-    // defaultTransform.rotation[1] = props?.rotation ? -props.rotation : 0;
+    defaultTransform.rotation[1] = props?.rotation ? -props.rotation : 0;
+
 
     if (name.includes("BED") || name.includes("bed")) {
         console.log("Rendering bed model");
         const modelPath = getModelPath("bed");
         if (!modelPath) return null;
-        return <BedModel3D safe_path={modelPath} transform={defaultTransform} />;
+        return <BedModel3D safe_path={modelPath} size_width={Math.max(props?.width || 0.8, props?.height || 0.8)} transform={defaultTransform} />;
     } else if (name.includes("WARDROBE") || name.includes("wardrobe")) {
         console.log("Rendering wardrobe model");
         const modelPath = getModelPath("wardrobe");
         if (!modelPath) return null;
-        return <WardrobeModel3D safe_path={modelPath} transform={defaultTransform} />;
-    } else if (name.includes("DESK") || name.includes("desk")) {
+        return <WardrobeModel3D safe_path={modelPath} size_width={Math.max(props?.width || 0.8, props?.height || 0.8)} transform={defaultTransform} />;
+    } else if (name.includes("DESK") || name.includes("desk") || name.includes("TABLE") || name.includes("table")) {
         console.log("Rendering desk model");
         const modelPath = getModelPath("desk");
         if (!modelPath) return null;
-        return <DeskModel3D safe_path={modelPath} transform={defaultTransform} />;
+        return <DeskModel3D safe_path={modelPath} size_width={Math.max(props?.width || 0.8, props?.height || 0.8)} transform={defaultTransform} />;
     } else {
+        console.log("No matching model for name:", name);
+        const modelPath = getModelPath("desk");
+        if (!modelPath) return null;
+        return <DeskModel3D safe_path={modelPath} size_width={Math.max(props?.width || 0.8, props?.height || 0.8)} transform={defaultTransform} />;
+
         return null;
     }
 
@@ -80,9 +87,11 @@ export function FurnitureModel3D({
 
 
 export function BedModel3D({
+    size_width,
     safe_path,
     transform,
 }: {
+    size_width: number;
     safe_path: string;
     transform: Transform;
 }) {
@@ -90,6 +99,8 @@ export function BedModel3D({
 
 
     const gltf = useGLTF(safe_path);
+    console.log("Before useNormalizer called BedModel3D size_width:", size_width);
+    useNormalizerModelBasedWidth(gltf.scene, size_width, [transform.position[0], transform.position[2]], transform.rotation[1] + Math.PI / 2);
 
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {
@@ -109,29 +120,29 @@ export function BedModel3D({
 
     return (
         <group
-            position={[
-                transform.position[0],
-                transform.position[1] - size.y / 1.4,
-                transform.position[2] - 0.8,
-            ]}
-            rotation={transform.rotation}
-            scale={transform.scale}
+        // position={[
+        //     transform.position[0],
+        //     transform.position[1],
+        //     transform.position[2],
+        // ]}
+        // rotation={transform.rotation}
+        // scale={transform.scale}
         >
             <primitive object={gltf.scene} />
         </group>
     );
 }
 export function WardrobeModel3D({
+    size_width,
     safe_path,
     transform,
 }: {
+    size_width: number;
     safe_path: string;
     transform: Transform;
 }) {
-
-
     const gltf = useGLTF(safe_path);
-
+    useNormalizerModelBasedWidth(gltf.scene, size_width, [transform.position[0], transform.position[2]], transform.rotation[1] + Math.PI);
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {
         gltf.scene.traverse((obj) => {
@@ -150,13 +161,13 @@ export function WardrobeModel3D({
 
     return (
         <group
-            position={[
-                transform.position[0] - 1.2,
-                transform.position[1],
-                transform.position[2] - 1.5,
-            ]}
-            rotation={[transform.rotation[0], transform.rotation[1] + Math.PI / 2, transform.rotation[2]]}
-            scale={transform.scale.map(s => s * 0.5) as [number, number, number]}
+        // position={[
+        //     transform.position[0],
+        //     transform.position[1],
+        //     transform.position[2],
+        // ]}
+        // rotation={[transform.rotation[0], transform.rotation[1], transform.rotation[2]]}
+        // scale={transform.scale.map(s => s * 0.5) as [number, number, number]}
         >
             <primitive object={gltf.scene} />
         </group>
@@ -165,16 +176,19 @@ export function WardrobeModel3D({
 
 
 export function DeskModel3D({
+    size_width,
     safe_path,
     transform,
 }: {
+    size_width: number;
     safe_path: string;
     transform: Transform;
 }) {
 
 
-
     const gltf = useGLTF(safe_path);
+    console.log("DeskModel3D size_width:", size_width);
+    useNormalizerModelBasedWidth(gltf.scene, size_width, [transform.position[0], transform.position[2]], transform.rotation[1] + Math.PI / 2);
 
     // ✅ 关键：让 glTF 里的每个 mesh 支持阴影
     useEffect(() => {
@@ -188,19 +202,19 @@ export function DeskModel3D({
     }, [gltf.scene]);
 
     // 你现在的贴地计算（可以后面慢慢调）
-    const box = new THREE.Box3().setFromObject(gltf.scene);
-    const size = new THREE.Vector3();
-    box.getSize(size);
+    // const box = new THREE.Box3().setFromObject(gltf.scene);
+    // const size = new THREE.Vector3();
+    // box.getSize(size);
 
     return (
         <group
-            position={[
-                transform.position[0],
-                transform.position[1] + 0.2,
-                transform.position[2] + 1.6,
-            ]}
-            rotation={[transform.rotation[0], transform.rotation[1] - Math.PI / 2, transform.rotation[2]]}
-            scale={transform.scale.map(s => s * 0.5) as [number, number, number]}
+        // position={[
+        //     transform.position[0],
+        //     transform.position[1],
+        //     transform.position[2],
+        // ]}
+        // rotation={[transform.rotation[0], transform.rotation[1], transform.rotation[2]]}
+        // scale={transform.scale.map(s => s * 0.5) as [number, number, number]}
         >
             <primitive object={gltf.scene} />
         </group>

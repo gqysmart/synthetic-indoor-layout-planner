@@ -15,7 +15,7 @@ export type RoomLayoutContext = {
 export function usePlannerSocket(onMessage?: (msg: WsIncomingMessage) => void) {
     const wsRef = useRef<WebSocket | null>(null);
     const wsUrlRef = useRef<string | null>(null);
-    const onMessageRef = useRef<typeof onMessage>();
+    const onMessageRef = useRef<typeof onMessage>(undefined);
     const [status, setStatus] = useState<PlannerStatus>("idle");
 
     // 始终保持最新的 onMessage

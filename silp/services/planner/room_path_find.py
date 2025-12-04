@@ -78,7 +78,8 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
 
 if __name__ == "__main__":
     DEBUG_ROOT = Path("debug")
+    from silp.domain.layout import layout_example_a
     debug = Debug_based_work_id(save_dir=str(DEBUG_ROOT))
     
-    path = room_path_find(debug=debug)
+    path = room_path_find(room=layout_example_a.room, furniture_list=layout_example_a.furnitures, debug=debug)
     print("path:", path)

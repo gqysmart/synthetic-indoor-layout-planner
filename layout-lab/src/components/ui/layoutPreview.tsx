@@ -12,7 +12,6 @@ interface Props {
 
 // LayoutPreview.tsx
 
-import { LayoutDTO } from "@/lib/types/websocketMessage"
 
 export function LayoutPreview({ layout }: { layout: LayoutDTO | null }) {
     if (!layout) {
