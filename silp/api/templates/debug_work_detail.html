@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Work {{ work_id }} – SILP Debug</title>
+
+  <style>
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 16px;
+    }
+    figure {
+      margin: 0;
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+    figcaption {
+      font-size: 12px;
+      color: #555;
+      word-break: break-all;
+      margin-top: 6px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p>
+      ← <a href="/debug">Back to Debug Home</a>
+    </p>
+
+    <h1>Work ID: <code>{{ work_id }}</code></h1>
+
+    <section>
+      <h2>README</h2>
+      <pre>{{ readme | e }}</pre>
+    </section>
+
+    {% if images %}
+    <section>
+      <h2>Images ({{ images | length }})</h2>
+
+      <div class="image-grid">
+        {% for img in images %}
+        <figure>
+          <img
+            src="/debug/work/{{ work_id }}/file/{{ img }}"
+            alt="{{ img }}"
+          >
+          <figcaption>{{ img }}</figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <section>
+      <h2>Other Files</h2>
+      <ul>
+        {% for f in files %}
+          <li>{{ f }}</li>
+        {% else %}
+          <li>(no files)</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

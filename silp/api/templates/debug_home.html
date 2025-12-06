@@ -5,23 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SILP Debug Home</title>
     <link rel="stylesheet" href="{{ url_for('public', path='css/debug_home.css') }}">
-    <style>
-    </style>
 </head>
 <body>
     <main>
         <h1>SILP Debug Home</h1>
+
+        <!-- 搜索表单：GET 请求，同一页面 -->
+        <form method="get" class="search-form">
+            <label>
+                Search work_id:
+                <input
+                    type="text"
+                    name="q"
+                    value="{{ q or '' }}"
+                    placeholder="Enter work_id substring..."
+                >
+            </label>
+            <button type="submit">Search</button>
+        </form>
+
+        <!-- 当前显示范围信息 -->
+        <p class="meta">
+            Showing
+            {% if total == 0 %}
+                0
+            {% else %}
+                {{ start_index + 1 }}–{{ end_index }}
+            {% endif %}
+            of {{ total }} work_ids
+            {% if q %}
+                (filtered by "<code>{{ q }}</code>")
+            {% endif %}
+        </p>
+
+        <!-- work_id 列表，只渲染当前页 -->
         {% for item in worked_items %}
-        <section>
-            <h2>work_id:<code>{{ item.work_id }}</code></h2>
+        <section class="work-item">
+           <h2>
+                work_id:
+                <a href="/debug/work/{{ item.work_id }}">
+                    <code>{{ item.work_id }}</code>
+                </a>
+            </h2>
             <details>
                 <summary>Details</summary>
                 <pre>{{ readme_contents[item.work_id] | e }}</pre>
             </details>
         </section>
+        {% else %}
+        <p>No work_ids found.</p>
         {% endfor %}
+
+        <!-- 简单分页导航，只显示上一页 / 下一页 -->
+        <nav class="pagination">
+            {% if page > 1 %}
+                <a href="?page={{ page - 1 }}{% if q %}&amp;q={{ q }}{% endif %}">&laquo; Prev</a>
+            {% endif %}
+
+            <span>Page {{ page }}</span>
+
+            {% if end_index < total %}
+                <a href="?page={{ page + 1 }}{% if q %}&amp;q={{ q }}{% endif %}">Next &raquo;</a>
+            {% endif %}
+        </nav>
 
         <p>{{ debug_text }}</p>
     </main>
 </body>
-</html> 
+</html>

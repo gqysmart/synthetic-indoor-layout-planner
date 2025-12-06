@@ -3,152 +3,124 @@
 import { Canvas } from "@react-three/fiber"
 import Link from "next/link"
 import { Grid, OrbitControls } from "@react-three/drei"
-import { FurnitureModel3D, FurnitureProps } from "@/components/3Dmodels/furniture3D"
+import { FurnitureModel3D } from "@/components/3Dmodels/furniture3D"
 import { Character } from "@/components/3Dmodels/character"
 import { useMemo, useState, memo, useEffect, useCallback } from "react"
 import { usePlannerSocket } from "@/hooks/usePlannerSocket"
 
 import { LayoutDTO, WsIncomingMessage } from "@/lib/types/websocketMessage"
 import { LayoutPreview } from "@/components/ui/layoutPreview"
-// import pathRandom from "../spacelayout/testPath2"
-
-
-
 
 export default function RoomLayoutPage() {
-    // const [room] = useState<Room>("beadroom");
-    // const [furnitures] = useState<Furniture[]>(["bed", "desk", "wardrobe"]);
-    // const [algorithm] = useState("csp");
+    const [wsUrl, setWsUrl] = useState<string | null>(null)
+    const [path, setPath] = useState<[number, number][] | null>([])
+    const [data_layout, set_data_layout] = useState<LayoutDTO[] | null>([])
+    const [selected, set_selected] = useState<number | null>(null)
 
-    const [wsUrl, setWsUrl] = useState<string | null>(null);
-    const [path, setPath] = useState<[number, number][] | null>([]);
-    const [data_layout, set_data_layout] = useState<LayoutDTO[] | null>([]);
-    /* for show which layout we want to use */
-    const [selected, set_selected] = useState<number | null>(null);
-    /* list the algorithms */
-    const algorithms = ["csp", "A*"];
-    const [algorithm_selected, set_algorithm_selected] = useState<number>(0);
-
+    const algorithms = ["csp", "A*"]
+    const [algorithm_selected, set_algorithm_selected] = useState<number>(0)
 
     const context_selected_layout: RoomLayoutContext = {
         layout_selected: selected,
         layouts: data_layout,
         algorithm: algorithms[algorithm_selected],
         path: path,
+    }
 
-    };
-
-    const url_for_jobId = "/api/plan/jobs";
+    const url_for_jobId = "/api/plan/jobs"
 
     const handlePlannerMessage = useCallback((msg: WsIncomingMessage) => {
         if (msg.type === "status") {
-            console.log("Websocket Status update:", msg.payload?.message);
+            console.log("Websocket Status update:", msg.payload?.message)
         } else if (msg.type === "error") {
-            console.error("Error from websocket server:", msg.payload?.message);
+            console.error("Error from websocket server:", msg.payload?.message)
         } else if (msg.type === "path_response") {
             if (msg.payload?.command === "start_path_finding") {
-                setPath(msg.payload.path);
+                setPath(msg.payload.path)
             }
-            console.log("Response from websocket server:", msg.payload);
-        }
-        else if (msg.type === "layout_response") {
+            console.log("Response from websocket server:", msg.payload)
+        } else if (msg.type === "layout_response") {
             if (msg.payload?.command === "get_example_layout") {
-                const layout = msg.payload.layout;
-                console.log("Received example layout:", layout);
-                set_data_layout(layout);
+                const layout = msg.payload.layout
+                console.log("Received example layout:", layout)
+                set_data_layout(layout)
                 if (layout.length > 0) {
-                    set_selected(0);//default selct the first one
+                    set_selected(0)
                 }
             }
         }
-    }, []);
+    }, [])
 
     const { status, startSocket, sendCommand, stopSocket } =
-        usePlannerSocket(handlePlannerMessage);
+        usePlannerSocket(handlePlannerMessage)
 
+    // 拿到 websocket server url
     useEffect(() => {
-        // Example: Fetch a new job ID from the server when the component mounts
         async function fetchWS() {
-            // Replace with your actual API call
-            const response = await fetch(url_for_jobId, { method: 'POST' });
-            const data = await response.json();
+            const response = await fetch(url_for_jobId, { method: "POST" })
+            const data = await response.json()
             if (!data.server_url) {
-                console.error("Invalid response:", data);
+                console.error("Invalid response:", data)
             } else {
-                setWsUrl(data.server_url);
-
+                setWsUrl(data.server_url)
             }
         }
-        fetchWS();
-    }, []);
+        fetchWS()
+    }, [])
 
+    // 根据 wsUrl 建立/关闭连接
     useEffect(() => {
-        if (!wsUrl) return;
-        console.log("Starting websocket with url:", wsUrl);
-        startSocket(wsUrl);
+        if (!wsUrl) return
+        console.log("Starting websocket with url:", wsUrl)
+        startSocket(wsUrl)
         return () => {
-            // 组件卸载时关闭连接
-            stopSocket();
+            stopSocket()
         }
-    }, [wsUrl, startSocket, stopSocket]);
-
-
-
-    // const roomContext: RoomLayoutContext = useMemo(() => ({
-    //     room,
-    //     furnitures,
-    //     algorithm,
-    //     path,
-    // }), [room, furnitures, algorithm, path]);
+    }, [wsUrl, startSocket, stopSocket])
 
     return (
-        <main className="h-screen bg-slate-950 text-slate-50 flex flex-col">
+        <main className="h-screen bg-slate-100 text-slate-900 flex flex-col">
             {/* Header */}
-            <header className="h-14 flex items-center justify-between px-6 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
+            <header className="h-14 flex items-center justify-between px-6 border-b border-slate-200 bg-white">
                 <div className="flex items-center gap-3">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/20 text-blue-300 text-sm font-semibold">
+                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 text-sm font-semibold">
                         LL
                     </span>
                     <div>
                         <h1 className="text-sm font-semibold tracking-wide">
-                            Layout Lab
+                            SILP Layout Lab
                         </h1>
-                        <p className="text-xs text-slate-400">
+                        <p className="text-xs text-slate-500">
                             Synthetic Indoor Layout Planner
                         </p>
                     </div>
                 </div>
 
-                <nav className="text-xs text-slate-400 flex items-center gap-4">
-                    <Link href="/" className="hover:text-slate-200 transition">
+                <nav className="text-xs text-slate-500 flex items-center gap-4">
+                    <Link href="/" className="hover:text-slate-800 transition">
                         Home
                     </Link>
-                    <span className="inline-flex items-center gap-1 text-[11px] px-2 py-1 rounded-full bg-slate-800/70 border border-slate-700/80">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        Live 3D
-                    </span>
                 </nav>
             </header>
 
-            {/* Main Content */}
-            <section className="flex-1 flex min-h-0">
-                {/* Sidebar */}
-                <aside className="w-72 border-r border-slate-800 p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
-                    <h2 className="text-xs font-semibold tracking-wide text-slate-300 mb-3 uppercase">
-                        Layout Control
+            {/* Main Content: 三列布局 */}
+            <section className="flex-1 flex min-h-0 gap-4 px-4 py-4">
+                {/* 左列：Layout Library */}
+                <aside className="w-72 flex-shrink-0 bg-white rounded-lg border border-slate-200 shadow-sm p-4 overflow-y-auto">
+                    <h2 className="text-xs font-semibold tracking-wide text-slate-700 mb-3 uppercase">
+                        Layout Library
                     </h2>
 
-                    {/* Connection card */}
-                    <div className="mb-4 rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs space-y-2">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/60 p-3 text-xs space-y-3">
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-slate-200">WebSocket</span>
-                            <StatusBadge status={status} />
+                            <span className="font-medium text-slate-700">Layouts</span>
+                            <span className="text-[11px] text-slate-500">
+                                {data_layout?.length ?? 0} loaded
+                            </span>
                         </div>
-                        <p className="text-[11px] text-slate-400 break-all leading-relaxed">
-                            {wsUrl ?? "Waiting for server URL…"}
-                        </p>
+
                         <button
-                            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-800/80 text-[11px] py-1.5 hover:bg-slate-700 transition disabled:opacity-50"
+                            className="w-full rounded-md bg-blue-500 text-white text-[11px] font-medium py-1.5 hover:bg-blue-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={() =>
                                 sendCommand({
                                     type: "command",
@@ -159,57 +131,109 @@ export default function RoomLayoutPage() {
                         >
                             Refresh layouts
                         </button>
-                    </div>
 
-                    {/* Layout selection card */}
-                    <div className="mb-4 rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs space-y-2">
-                        <div className="flex items-center justify-between mb-1">
-                            <span className="font-medium text-slate-200">Layouts</span>
-                            <span className="text-[11px] text-slate-400">
-                                {data_layout?.length ?? 0} loaded
-                            </span>
-                        </div>
-
-                        <label className="block text-[11px] text-slate-400 mb-1">
-                            Choose layout
-                        </label>
-                        <select
-                            value={selected !== null ? String(selected) : ""}
-                            onChange={(e) =>
-                                set_selected(
-                                    e.target.value === "" ? null : Number(e.target.value)
-                                )
-                            }
-                            className="w-full mb-2 border border-slate-700 bg-slate-900/80 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                            <option value="">Select a layout…</option>
-                            {data_layout?.map((layout, index) => (
-                                <option key={layout.name} value={index}>
-                                    {layout.name}
-                                </option>
-                            ))}
-                        </select>
-
-                        <div className="rounded-lg border border-slate-800 bg-slate-950/40 overflow-hidden">
-                            <LayoutPreview
-                                layout={
-                                    selected !== null && data_layout ? data_layout[selected] : null
+                        <div className="space-y-2">
+                            <label className="block text-[11px] text-slate-500">
+                                Choose layout
+                            </label>
+                            <select
+                                value={selected !== null ? String(selected) : ""}
+                                onChange={(e) =>
+                                    set_selected(
+                                        e.target.value === "" ? null : Number(e.target.value)
+                                    )
                                 }
-                            />
+                                className="w-full border border-slate-300 bg-white text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            >
+                                <option value="">Select a layout…</option>
+                                {data_layout?.map((layout, index) => (
+                                    <option key={layout.name} value={index}>
+                                        {layout.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Layout 简要信息，模仿截图里的 Room Info / Furniture count */}
+                        {selected !== null && data_layout && data_layout[selected] && (
+                            <div className="mt-1 space-y-1 text-[11px] text-slate-600">
+                                <p>
+                                    <span className="font-semibold">Room info:</span>{" "}
+                                    {data_layout[selected].room.width} ×{" "}
+                                    {data_layout[selected].room.height}
+                                </p>
+                                <p>
+                                    <span className="font-semibold">Furniture count:</span>{" "}
+                                    {data_layout[selected].furnitures.length}
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* 2D 预览小卡片 */}
+                    <div className="mt-4 rounded-lg border border-slate-200 bg-white overflow-hidden">
+                        <LayoutPreview
+                            layout={
+                                selected !== null && data_layout ? data_layout[selected] : null
+                            }
+                        />
+                    </div>
+                </aside>
+
+                {/* 中间列：3D Viewport */}
+                <section className="flex-1 flex flex-col min-h-0 bg-white rounded-lg border border-slate-200 shadow-sm">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 bg-slate-50">
+                        <h2 className="text-xs font-semibold text-slate-700 tracking-wide uppercase">
+                            3D Viewport
+                        </h2>
+                        <div className="text-[11px] text-slate-500">
+                            Algo:{" "}
+                            <span className="text-slate-800 font-medium">
+                                {algorithms[algorithm_selected]}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Algorithm + actions card */}
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/80 p-3 text-xs space-y-3">
+                    <Canvas
+                        shadows
+                        dpr={[1, 2]}
+                        camera={{ position: [5, 5, 5], fov: 50 }}
+                        className="flex-1 bg-slate-100 rounded-b-lg"
+                    >
+                        <LayoutScene context={context_selected_layout} />
+                    </Canvas>
+
+                    <footer className="mt-auto py-3 text-center text-[11px] text-slate-400 border-t border-slate-200 bg-white rounded-b-lg">
+                        © 2025 ACE AI · Layout Lab
+                    </footer>
+                </section>
+
+                {/* 右列：Setup + Path finding */}
+                <aside className="w-72 flex-shrink-0 bg-white rounded-lg border border-slate-200 shadow-sm p-4 space-y-4">
+                    <h2 className="text-xs font-semibold tracking-wide text-slate-700 mb-1 uppercase">
+                        Setup
+                    </h2>
+
+                    {/* WebSocket 状态 */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-2">
                         <div className="flex items-center justify-between">
-                            <span className="font-medium text-slate-200">Path finding</span>
-                            <span className="text-[11px] text-slate-500">
-                                Algorithm
-                            </span>
+                            <span className="font-medium text-slate-700">WebSocket</span>
+                            <StatusBadge status={status} />
+                        </div>
+                        <p className="text-[11px] text-slate-500 break-all leading-relaxed">
+                            {wsUrl ?? "Waiting for server URL…"}
+                        </p>
+                    </div>
+
+                    {/* Path finding 控制 */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium text-slate-700">Path finding</span>
+                            <span className="text-[11px] text-slate-500">Algorithm</span>
                         </div>
 
                         <select
-                            className="w-full border border-slate-700 bg-slate-900/80 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                            className="w-full border border-slate-300 bg-white text-xs rounded-md px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             value={algorithm_selected}
                             onChange={(e) => set_algorithm_selected(Number(e.target.value))}
                         >
@@ -221,7 +245,7 @@ export default function RoomLayoutPage() {
                         </select>
 
                         <button
-                            className="w-full mt-1 rounded-lg bg-emerald-500 text-emerald-950 text-[11px] font-medium py-1.5 hover:bg-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full mt-1 rounded-md bg-emerald-500 text-emerald-950 text-[11px] font-medium py-1.5 hover:bg-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={() => {
                                 if (wsUrl && selected !== null) {
                                     console.log(
@@ -243,77 +267,35 @@ export default function RoomLayoutPage() {
                         </button>
 
                         {path && path.length > 0 && (
-                            <p className="text-[11px] text-emerald-300 mt-1">
+                            <p className="text-[11px] text-emerald-600 mt-1">
                                 Path loaded: {path.length} points
                             </p>
                         )}
                     </div>
                 </aside>
-
-                {/* 3D Viewport */}
-                <section className="flex-1 flex flex-col min-h-0 bg-slate-950">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/80 backdrop-blur">
-                        <div>
-                            <h2 className="text-xs font-semibold text-slate-200 tracking-wide uppercase">
-                                3D Viewport
-                            </h2>
-
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                            Algo:{" "}
-                            <span className="text-slate-200 font-medium">
-                                {algorithms[algorithm_selected]}
-                            </span>
-                        </div>
-                    </div>
-
-                    <Canvas
-                        shadows
-                        dpr={[1, 2]}
-                        camera={{ position: [5, 5, 5], fov: 50 }}
-                        className="flex-1 bg-slate-950"
-                    >
-                        <LayoutScene context={context_selected_layout} />
-                    </Canvas>
-
-                    <footer className="mt-auto py-3 text-center text-[11px] text-slate-500 border-t border-slate-800 bg-slate-900/80">
-                        © 2025 ACE AI · Layout Lab
-                    </footer>
-                </section>
             </section>
         </main>
     )
-
-
 }
 
 type RoomLayoutContext = {
-    path: [number, number][] | null,
-    layout_selected: number | null,
-    layouts: LayoutDTO[] | null,
-    algorithm: string | null,
-
+    path: [number, number][] | null
+    layout_selected: number | null
+    layouts: LayoutDTO[] | null
+    algorithm: string | null
 }
 
 const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
-    const { path, algorithm, layouts, layout_selected } = context;
-    console.log("Rendering LayoutScene with context:", context);
+    const { path, algorithm, layouts, layout_selected } = context
+    console.log("Rendering LayoutScene with context:", context)
 
     return (
         <>
-            {/* 背景颜色：改成偏浅的灰色 */}
-            <color attach="background" args={["#f4f4f5"]} />
+            {/* 浅色背景 */}
+            <color attach="background" args={["#f9fafb"]} />
 
-            {/* 环境光加强一点 */}
             <ambientLight intensity={0.8} />
-
-            {/* 半球光：模拟天空/地面反射，让物体不那么黑 */}
-            <hemisphereLight
-                groundColor="#dddddd"
-                intensity={0.6}
-            />
-
-            {/* 定向光：做出阴影和立体感 */}
+            <hemisphereLight groundColor="#dddddd" intensity={0.6} />
             <directionalLight
                 position={[5, 10, 5]}
                 intensity={1.4}
@@ -332,10 +314,8 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 maxPolarAngle={Math.PI / 2.1}
             />
 
-            {/* Fog 可以弱一点，避免远处全白/全灰 */}
             <fog attach="fog" args={["#e5e7eb", 30, 160]} />
 
-            {/* 加一个 Grid, 让空间感更强 */}
             <Grid
                 args={[10, 10]}
                 position={[0, -0.001, 0]}
@@ -356,7 +336,6 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                     position={[0, 0, 0]}
                 >
                     <planeGeometry args={[3.6, 3.3]} />
-                    {/* 底色也不要太黑 */}
                     <meshStandardMaterial color="#e5e7eb" />
                 </mesh>
             )}
@@ -364,27 +343,39 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
     )
 })
 
+const RoomAndFurnitures = memo(function RoomAndFurnitures({
+    layouts,
+    selected,
+    path,
+}: {
+    layouts: LayoutDTO[]
+    selected: number
+    path: [number, number][] | null
+}) {
+    console.log("Rendering RoomAndFurnitures with selected layout:", layouts[selected])
+    const layout = layouts[selected]
+    const furnitures = layout.furnitures
 
-const RoomAndFurnitures = memo(function RoomAndFurnitures({ layouts, selected, path }: { layouts: LayoutDTO[], selected: number, path: [number, number][] | null }) {
-    console.log("Rendering RoomAndFurnitures with selected layout:", layouts[selected]);
-    const layout = layouts[selected];
-    const furnitures = layout.furnitures;
     return (
-
         <>
-
             <Room width={layout.room.width} height={layout.room.height} />
-            {
-                furnitures.map((furniture, idx) =>
-                    <FurnitureModel3D key={idx} props={{ name: furniture.type, position: [furniture.position[0], furniture.position[1]], rotation: furniture.rotation * (Math.PI / 180), width: furniture.width, height: furniture.height }} />
-                )
-            }
-
+            {furnitures.map((furniture, idx) => (
+                <FurnitureModel3D
+                    key={idx}
+                    props={{
+                        name: furniture.type,
+                        position: [furniture.position[0], furniture.position[1]],
+                        rotation: (furniture.rotation * Math.PI) / 180,
+                        width: furniture.width,
+                        height: furniture.height,
+                    }}
+                />
+            ))}
         </>
     )
 })
 
-function Room({ width, height }: { width: number, height: number }) {
+function Room({ width, height }: { width: number; height: number }) {
     return (
         <mesh
             receiveShadow
@@ -393,7 +384,7 @@ function Room({ width, height }: { width: number, height: number }) {
         >
             <planeGeometry args={[width, height]} />
             <meshStandardMaterial
-                color="#ffe4ea"      // 比较浅的粉色
+                color="#fee2e2"
                 opacity={0.6}
                 transparent
             />
@@ -408,13 +399,13 @@ function StatusBadge({ status }: { status: string }) {
         status === "connecting"
             ? "bg-amber-400"
             : isConnected
-                ? "bg-emerald-400"
+                ? "bg-emerald-500"
                 : "bg-red-500"
 
     return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-800/80 border border-slate-700 px-2 py-0.5 text-[11px]">
+        <span className="inline-flex items-center gap-1 rounded-full bg-white border border-slate-200 px-2 py-0.5 text-[11px]">
             <span className={`h-1.5 w-1.5 rounded-full ${color} animate-pulse`} />
-            <span className="capitalize text-slate-200">{status || "idle"}</span>
+            <span className="capitalize text-slate-700">{status || "idle"}</span>
         </span>
     )
 }

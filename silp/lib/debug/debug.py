@@ -72,6 +72,15 @@ class Debug_based_work_id(Debug):
         self.work_id = work_id
         self._ensure_dir()
 
+    def get_work_ids(start: int = 0, limit: int = 100):
+        debug_root = Path("debug") #a big problem , should be consistent with DEBUG_ROOT in debug.py
+        all_dirs = sorted(
+        [p for p in debug_root.iterdir() if p.is_dir()],
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+        return [p.name for p in all_dirs[start : start + limit]]
+
     def save_mask(self, mask: np.ndarray, file_name: str):
         if not self.enable:
             return
