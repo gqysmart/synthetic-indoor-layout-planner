@@ -72,7 +72,7 @@ def room_path_find(room: Optional[Room]=None, furniture_list:Optional[List[Furni
     if path is not None:
        if debug is not None:
             walkable_img = nav.obstacle_mask.copy()
-            walkable_img[[row for row,col in path],[col for row,col in path]]=128
+            walkable_img[[row for row,col in path],[col for row,col in path]]=255
             debug.save_image(
                 walkable_img, f"path_{path_name}")
             
