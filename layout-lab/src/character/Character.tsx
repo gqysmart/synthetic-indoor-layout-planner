@@ -1,5 +1,5 @@
 import { useGLTF } from '@react-three/drei'
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Group } from 'three'
 import { useNormalizer } from './useNormalizer'
 import { useCharacterAnimator } from './useAnimator'
@@ -10,11 +10,12 @@ import { usePathFollower } from './usePathFollower'
 
 export function Character({
     path = [],
-    initialPosition = [0, 0],
+    initialPosition = [-1.04, 0.67],
     segmentDuration = 0.5,
     speed = 1,
     mode = 'mixed',
     modelUrl = '/models/personaje_rs.glb',
+    loop = false,
 }: CharacterProps) {
     const groupRef = useRef<Group>(null)
     console.log("Character render with modelUrl:", path)
@@ -42,9 +43,13 @@ export function Character({
     //     enabled: pathFollowerEnabled,
     //     segmentDuration,
     // })
-    usePathFollower(groupRef, path, {
+    const simplifiedPath = useMemo(
+        () => (path ? simplifyPath(path, 0.05) : path),
+        [path]
+    )
+    usePathFollower(groupRef, simplifiedPath, {
         enabled: pathFollowerEnabled,
-        speed,
+        speed, loop: loop
     })
 
     // 键盘控制
@@ -66,4 +71,30 @@ export function Character({
 
 
     // return <primitive object={scene} ref={groupRef} />
+}
+type PathPoint = [number, number]  // [x, z]
+function simplifyPath(path: PathPoint[], step = 0.05): PathPoint[] {
+    if (path.length <= 2) return path
+
+    const result: PathPoint[] = [path[0]]
+    let acc = 0
+
+    for (let i = 1; i < path.length; i++) {
+        const [x1, z1] = path[i - 1]
+        const [x2, z2] = path[i]
+        const dx = x2 - x1
+        const dz = z2 - z1
+        const d = Math.hypot(dx, dz)
+        acc += d
+        if (acc >= step) {
+            result.push(path[i])
+            acc = 0
+        }
+    }
+
+    if (result[result.length - 1] !== path[path.length - 1]) {
+        result.push(path[path.length - 1])
+    }
+
+    return result
 }

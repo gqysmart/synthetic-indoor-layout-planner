@@ -5,9 +5,9 @@ import { useFrame } from '@react-three/fiber'
 import type { PathPoint } from './types'
 
 interface PathFollowerOptions {
-  enabled?: boolean 
-  speed?: number           // 每秒走多少单位距离
-  loop?: boolean           // 是否循环
+  enabled?: boolean
+  speed?: number     // 每秒走多少单位
+  loop?: boolean
 }
 
 export function usePathFollower(
@@ -17,12 +17,14 @@ export function usePathFollower(
 ) {
   const {
     enabled = true,
-    speed = 0.6,   // 可以根据感觉调
+    speed = 0.6,
     loop = true,
   } = options
 
+  // 当前在走的段索引 [i -> i+1]
   const segmentIndexRef = useRef(0)
-  const segmentProgressRef = useRef(0) // 当前段内 0~1 的插值
+  // 当前段已经走了多少距离（不是 0~1，而是 0~segmentLength）
+  const distanceOnSegmentRef = useRef(0)
 
   const vFromRef = useRef(new Vector3())
   const vToRef = useRef(new Vector3())
@@ -30,10 +32,10 @@ export function usePathFollower(
   const vDirRef = useRef(new Vector3())
   const vLookRef = useRef(new Vector3())
 
-  // path / enabled / speed 变化时，重置进度
+  // 当 path / enabled / speed / loop 变化时重置
   useEffect(() => {
     segmentIndexRef.current = 0
-    segmentProgressRef.current = 0
+    distanceOnSegmentRef.current = 0
   }, [path, enabled, speed, loop])
 
   useFrame((_, delta) => {
@@ -43,8 +45,9 @@ export function usePathFollower(
     if (!path || path.length < 2) return
 
     let idx = segmentIndexRef.current
-    let t = segmentProgressRef.current
-    let remainingTime = delta
+    let dOnSeg = distanceOnSegmentRef.current
+
+    let remainDist = speed * delta // 本帧还能走多少距离
 
     const vFrom = vFromRef.current
     const vTo = vToRef.current
@@ -52,62 +55,66 @@ export function usePathFollower(
     const vDir = vDirRef.current
     const vLook = vLookRef.current
 
-    while (remainingTime > 0 && idx < path.length - 1) {
-      const from = path[idx]
-      const to = path[idx + 1]
+    const y = group.position.y
 
-      const y = group.position.y
-      vFrom.set(from[0], y, from[1])
-      vTo.set(to[0], y, to[1])
+    while (remainDist > 0 && idx < path.length - 1) {
+      const [x1, z1] = path[idx]
+      const [x2, z2] = path[idx + 1]
 
-      const dist = vFrom.distanceTo(vTo)
-      if (dist < 1e-6) {
-        // 段太短，直接跳下一段
+      vFrom.set(x1, y, z1)
+      vTo.set(x2, y, z2)
+
+      const segLen = vFrom.distanceTo(vTo)
+      if (segLen < 1e-6) {
+        // 段太短，直接跳过
         idx++
-        t = 0
+        dOnSeg = 0
         continue
       }
 
-      const duration = dist / speed // 这一段需要多少秒
-      const dt = remainingTime / duration
+      const segRemain = segLen - dOnSeg
 
-      if (t + dt >= 1) {
-        // 这一帧就能走完这一段（甚至有多余时间）
-        remainingTime -= (1 - t) * duration
-        t = 1
+      if (remainDist < segRemain) {
+        // 这一帧走不完这一段
+        dOnSeg += remainDist
+        const t = dOnSeg / segLen
+        vPos.lerpVectors(vFrom, vTo, t)
+        remainDist = 0
       } else {
-        t += dt
-        remainingTime = 0
+        // 这一帧走完这一段，还有富余距离
+        remainDist -= segRemain
+        dOnSeg = 0
+        idx++
+        vPos.copy(vTo)
       }
 
-      vPos.lerpVectors(vFrom, vTo, t)
       group.position.copy(vPos)
 
+      // 方向 & 旋转
       vDir.subVectors(vTo, vFrom)
       if (vDir.lengthSq() > 1e-6) {
         vDir.normalize()
         vLook.copy(vPos).add(vDir)
         group.lookAt(vLook)
       }
-
-      if (t >= 1) {
-        idx++
-        t = 0
-      }
     }
 
-    // 走到路径终点以后的处理
+    // 处理到达终点
     if (idx >= path.length - 1) {
       if (loop) {
         idx = 0
-        t = 0
+        dOnSeg = 0
       } else {
-        idx = path.length - 1
-        t = 1
+        // 停在最后一个点
+        const [xLast, zLast] = path[path.length - 1]
+        group.position.set(xLast, group.position.y, zLast)
+        segmentIndexRef.current = path.length - 1
+        distanceOnSegmentRef.current = 0
+        return
       }
     }
 
     segmentIndexRef.current = idx
-    segmentProgressRef.current = t
+    distanceOnSegmentRef.current = dOnSeg
   })
 }

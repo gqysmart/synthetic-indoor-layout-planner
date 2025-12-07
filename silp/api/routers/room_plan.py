@@ -94,7 +94,10 @@ async def websocket_endpoint(websocket: WebSocket, job_id: str) -> None:
                         else:
                             room = layout_example_b.room
                             furniture_list = layout_example_b.furnitures
-                        method = "Astar"
+
+                        method = payload.get("parameters", {}).get("algorithm", "Astar")
+                        print("Using algorithm:", method)
+                        
                         agent = None
                         path = await  asyncio.to_thread(room_path_find, room, furniture_list, method, agent=agent, debug=debug)
                         path = _serialize_path(path)

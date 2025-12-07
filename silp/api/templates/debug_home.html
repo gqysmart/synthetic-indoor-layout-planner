@@ -11,7 +11,17 @@
         <h1>SILP Debug Home</h1>
 
         <!-- 搜索表单：GET 请求，同一页面 -->
-        <form method="get" class="search-form">
+        <form method="get" class="search-form"style="
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    font-family: Arial, sans-serif;
+">
             <label>
                 Search work_id:
                 <input
@@ -19,6 +29,13 @@
                     name="q"
                     value="{{ q or '' }}"
                     placeholder="Enter work_id substring..."
+                    style="
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 14px;
+        "
                 >
             </label>
             <button type="submit">Search</button>

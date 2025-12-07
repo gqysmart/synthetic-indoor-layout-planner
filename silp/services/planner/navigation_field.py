@@ -21,7 +21,8 @@ class Agent:
 @dataclass
 class SimpleAgent(Agent):
     radius_m: float
-    extra_clearance_m: float = 0.1
+    extra_clearance_m: float = 0.0
+    position: list[float, float] = field(default_factory=lambda: [0.0, 0.0])
 
     @property
     def required_clearance_m(self) -> float:
@@ -148,7 +149,7 @@ class PixelNavigationField:
         # 在房间内，且距离障碍 ≥ px_req 的位置是 walkable
         walkable = (
             (dist >= px_req)
-            # & (self.container_mask == self.mask_value.mask_value_container)&()
+             & (self.container_mask == self.mask_value.mask_value_container)
         )
         self.walkable_mask = walkable
         if debug is not None:

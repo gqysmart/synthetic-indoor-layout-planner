@@ -17,14 +17,16 @@ export default function RoomLayoutPage() {
     const [data_layout, set_data_layout] = useState<LayoutDTO[] | null>([])
     const [selected, set_selected] = useState<number | null>(null)
 
-    const algorithms = ["csp", "A*"]
+    const algorithms = ["BFS", "Astar"]
     const [algorithm_selected, set_algorithm_selected] = useState<number>(0)
+    const [loop, set_loop] = useState<boolean>(false)
 
     const context_selected_layout: RoomLayoutContext = {
         layout_selected: selected,
         layouts: data_layout,
         algorithm: algorithms[algorithm_selected],
         path: path,
+        loop: loop,
     }
 
     const url_for_jobId = "/api/plan/jobs"
@@ -243,6 +245,15 @@ export default function RoomLayoutPage() {
                                 </option>
                             ))}
                         </select>
+                        <label className="inline-flex items-center gap-2 text-[11px] text-slate-700">
+                            <input
+                                type="checkbox"
+                                className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500"
+                                checked={loop}
+                                onChange={(e) => set_loop(e.target.checked)}
+                            />
+                            <span>Loop path</span>
+                        </label>
 
                         <button
                             className="w-full mt-1 rounded-md bg-emerald-500 text-emerald-950 text-[11px] font-medium py-1.5 hover:bg-emerald-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
@@ -256,7 +267,7 @@ export default function RoomLayoutPage() {
                                         type: "command",
                                         payload: {
                                             command: "start_path_finding",
-                                            parameters: { selected },
+                                            parameters: { selected, algorithm: algorithms[algorithm_selected] },
                                         },
                                     })
                                 }
@@ -283,10 +294,11 @@ type RoomLayoutContext = {
     layout_selected: number | null
     layouts: LayoutDTO[] | null
     algorithm: string | null
+    loop: boolean | null
 }
 
 const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayoutContext }) {
-    const { path, algorithm, layouts, layout_selected } = context
+    const { path, algorithm, layouts, layout_selected, loop } = context
     console.log("Rendering LayoutScene with context:", context)
 
     return (
@@ -304,7 +316,7 @@ const LayoutScene = memo(function LayoutScene({ context }: { context: RoomLayout
                 castShadow
             />
 
-            <Character path={path} />
+            <Character path={path} loop={loop ?? false} />
 
             <OrbitControls
                 enablePan

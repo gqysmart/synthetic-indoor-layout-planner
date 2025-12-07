@@ -11,4 +11,5 @@ export interface CharacterProps {
   speed?: number            // 人物移动速度（预留）
   mode?: CharacterMode
   modelUrl?: string
+  loop?: boolean
 }
